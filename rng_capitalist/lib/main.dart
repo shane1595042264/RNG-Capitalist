@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
 import 'models/dice_modifier.dart';
+import 'models/sunk_cost.dart';
 import 'utils/storage_utils_dnd.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
 import 'components/modifiers_page.dart';
+import 'components/sunk_costs_page.dart';
+import 'components/schedule_page.dart';
 import 'components/about_page_dnd.dart';
 import 'components/app_sidebar_dnd.dart';
 
@@ -56,6 +59,7 @@ class _HomePageState extends State<HomePage> {
   List<FixedCost> _fixedCosts = [];
   List<PurchaseHistory> _purchaseHistory = [];
   List<DiceModifier> _modifiers = [];
+  List<SunkCost> _sunkCosts = [];
   double _lastMonthSpend = 0.0;
   String _currentPage = 'Oracle';
   
@@ -118,6 +122,7 @@ class _HomePageState extends State<HomePage> {
       _lastMonthSpend = data.lastMonthSpend;
       _fixedCosts = data.fixedCosts;
       _purchaseHistory = data.purchaseHistory;
+      _sunkCosts = data.sunkCosts;
       if (data.modifiers.isNotEmpty) {
         _modifiers = data.modifiers;
       }
@@ -133,6 +138,7 @@ class _HomePageState extends State<HomePage> {
       fixedCosts: _fixedCosts,
       purchaseHistory: _purchaseHistory,
       modifiers: _modifiers,
+      sunkCosts: _sunkCosts,
     );
     await StorageUtilsDnD.saveSettings(data);
   }
@@ -256,6 +262,44 @@ class _HomePageState extends State<HomePage> {
     _saveSettings();
   }
 
+  void _onAddSunkCost(SunkCost cost) {
+    setState(() {
+      _sunkCosts.add(cost);
+    });
+    _saveSettings();
+  }
+
+  void _onEditSunkCost(SunkCost updatedCost) {
+    setState(() {
+      final index = _sunkCosts.indexWhere((c) => c.id == updatedCost.id);
+      if (index != -1) {
+        _sunkCosts[index] = updatedCost;
+      }
+    });
+    _saveSettings();
+  }
+
+  void _onDeleteSunkCost(String costId) {
+    setState(() {
+      _sunkCosts.removeWhere((c) => c.id == costId);
+    });
+    _saveSettings();
+  }
+
+  void _onToggleSunkCost(SunkCost cost, bool isActive) {
+    setState(() {
+      final index = _sunkCosts.indexOf(cost);
+      _sunkCosts[index] = SunkCost(
+        id: cost.id,
+        name: cost.name,
+        amount: cost.amount,
+        category: cost.category,
+        isActive: isActive,
+      );
+    });
+    _saveSettings();
+  }
+
   Widget _buildMainContent() {
     switch (_currentPage) {
       case 'Oracle':
@@ -289,6 +333,18 @@ class _HomePageState extends State<HomePage> {
           onToggleModifier: _onToggleModifier,
           onAddModifier: _onAddModifier,
           onDeleteModifier: _onDeleteModifier,
+        );
+      case 'Sunk Costs':
+        return SunkCostsPage(
+          sunkCosts: _sunkCosts,
+          onAddCost: _onAddSunkCost,
+          onEditCost: _onEditSunkCost,
+          onDeleteCost: _onDeleteSunkCost,
+          onToggleCost: _onToggleSunkCost,
+        );
+      case 'Schedule':
+        return SchedulePage(
+          sunkCosts: _sunkCosts,
         );
       case 'About':
         return const AboutPageDnD();

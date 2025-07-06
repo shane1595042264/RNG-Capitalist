@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/fixed_cost.dart';
 import '../models/purchase_history.dart';
 import '../models/dice_modifier.dart';
+import '../models/sunk_cost.dart';
 
 class StorageUtilsDnD {
   static const String _lastBalanceKey = 'lastBalance';
@@ -11,6 +12,7 @@ class StorageUtilsDnD {
   static const String _fixedCostsKey = 'fixedCosts';
   static const String _purchaseHistoryKey = 'purchaseHistory';
   static const String _modifiersKey = 'diceModifiers';
+  static const String _sunkCostsKey = 'sunkCosts';
 
   static Future<AppDataDnD> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -36,12 +38,19 @@ class StorageUtilsDnD {
         .map((json) => DiceModifier.fromJson(jsonDecode(json)))
         .toList();
     
+    // Load sunk costs
+    final sunkCostsJson = prefs.getStringList(_sunkCostsKey) ?? [];
+    final sunkCosts = sunkCostsJson
+        .map((json) => SunkCost.fromJson(jsonDecode(json)))
+        .toList();
+    
     return AppDataDnD(
       lastBalance: lastBalance,
       lastMonthSpend: lastMonthSpend,
       fixedCosts: fixedCosts,
       purchaseHistory: purchaseHistory,
       modifiers: modifiers,
+      sunkCosts: sunkCosts,
     );
   }
 
@@ -68,6 +77,12 @@ class StorageUtilsDnD {
         .map((modifier) => jsonEncode(modifier.toJson()))
         .toList();
     await prefs.setStringList(_modifiersKey, modifiersJson);
+    
+    // Save sunk costs
+    final sunkCostsJson = data.sunkCosts
+        .map((cost) => jsonEncode(cost.toJson()))
+        .toList();
+    await prefs.setStringList(_sunkCostsKey, sunkCostsJson);
   }
 
   static Future<void> saveLastBalance(String balance) async {
@@ -87,6 +102,7 @@ class AppDataDnD {
   final List<FixedCost> fixedCosts;
   final List<PurchaseHistory> purchaseHistory;
   final List<DiceModifier> modifiers;
+  final List<SunkCost> sunkCosts;
 
   AppDataDnD({
     required this.lastBalance,
@@ -94,6 +110,7 @@ class AppDataDnD {
     required this.fixedCosts,
     required this.purchaseHistory,
     required this.modifiers,
+    required this.sunkCosts,
   });
 
   AppDataDnD copyWith({
@@ -102,6 +119,7 @@ class AppDataDnD {
     List<FixedCost>? fixedCosts,
     List<PurchaseHistory>? purchaseHistory,
     List<DiceModifier>? modifiers,
+    List<SunkCost>? sunkCosts,
   }) {
     return AppDataDnD(
       lastBalance: lastBalance ?? this.lastBalance,
@@ -109,6 +127,7 @@ class AppDataDnD {
       fixedCosts: fixedCosts ?? this.fixedCosts,
       purchaseHistory: purchaseHistory ?? this.purchaseHistory,
       modifiers: modifiers ?? this.modifiers,
+      sunkCosts: sunkCosts ?? this.sunkCosts,
     );
   }
 }
