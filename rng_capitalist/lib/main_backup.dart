@@ -113,6 +113,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   final _fixedCostsController = TextEditingController();
   final _priceController = TextEditingController();
   final _itemNameController = TextEditingController();
+  final _lastMonthSpendController = TextEditingController();
+  final _availableBudgetController = TextEditingController();
+  final _remainingBudgetController = TextEditingController();
   
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -125,9 +128,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   String _statsText = '';
   
   // Phase 2 additions
-  double _strictnessLevel = 0.70; // Default strictness
+  double _strictnessLevel = 1.0; // Default strictness (100% = pure price ratio)
   List<FixedCost> _fixedCosts = [];
   List<PurchaseHistory> _purchaseHistory = [];
+  double _lastMonthSpend = 0.0; // New field for last month's spending
   String _currentPage = 'Oracle';
   
   @override
@@ -160,8 +164,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _strictnessLevel = prefs.getDouble('strictness') ?? 0.70;
+      _strictnessLevel = prefs.getDouble('strictness') ?? 1.0;
       _balanceController.text = prefs.getString('lastBalance') ?? '';
+      _lastMonthSpend = prefs.getDouble('lastMonthSpend') ?? 0.0;
       
       // Load fixed costs
       final fixedCostsJson = prefs.getStringList('fixedCosts') ?? [];
@@ -172,12 +177,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _purchaseHistory = historyJson.map((json) => PurchaseHistory.fromJson(jsonDecode(json))).toList();
     });
     _calculateTotalFixedCosts();
+    _updateLastMonthSpendController();
+  }
+  
+  void _updateLastMonthSpendController() {
+    _lastMonthSpendController.text = _lastMonthSpend.toStringAsFixed(2);
+    _updateAvailableBudget();
+  }
+  
+  void _updateAvailableBudget() {
+    double currentBalance = double.tryParse(_balanceController.text) ?? 0.0;
+    double availableBudget = currentBalance - _lastMonthSpend;
+    _availableBudgetController.text = availableBudget.toStringAsFixed(2);
+    _updateRemainingBudget();
+  }
+  
+  void _updateRemainingBudget() {
+    double availableBudget = double.tryParse(_availableBudgetController.text) ?? 0.0;
+    double fixedCosts = double.tryParse(_fixedCostsController.text) ?? 0.0;
+    double remainingBudget = availableBudget - fixedCosts;
+    _remainingBudgetController.text = remainingBudget.toStringAsFixed(2);
   }
   
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('strictness', _strictnessLevel);
     await prefs.setString('lastBalance', _balanceController.text);
+    await prefs.setDouble('lastMonthSpend', _lastMonthSpend);
     
     // Save fixed costs
     final fixedCostsJson = _fixedCosts.map((cost) => jsonEncode(cost.toJson())).toList();
@@ -194,6 +220,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       total += cost.amount;
     }
     _fixedCostsController.text = total.toStringAsFixed(2);
+    _updateRemainingBudget();
   }
   
   @override
@@ -202,6 +229,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _fixedCostsController.dispose();
     _priceController.dispose();
     _itemNameController.dispose();
+    _lastMonthSpendController.dispose();
+    _availableBudgetController.dispose();
+    _remainingBudgetController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -211,6 +241,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final fixedCosts = double.tryParse(_fixedCostsController.text) ?? 0;
     final price = double.tryParse(_priceController.text) ?? 0;
     final itemName = _itemNameController.text.isEmpty ? 'Unknown Item' : _itemNameController.text;
+    
+    // Calculate remaining budget (available budget - fixed costs)
+    final availableBudget = balance - _lastMonthSpend;
+    final remainingBudget = availableBudget - fixedCosts;
     
     // Validation
     if (balance <= 0 || price <= 0) {
@@ -225,22 +259,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       return;
     }
     
-    if (price > balance) {
+    if (price > remainingBudget) {
       setState(() {
         _showResult = true;
         _shouldBuy = false;
         _decisionText = 'NO WAY!';
-        _explanationText = 'You literally don\'t have the money!';
-        _statsText = '';
+        _explanationText = remainingBudget <= 0 
+            ? 'No remaining budget after fixed costs!'
+            : 'This would exceed your remaining budget!';
+        _statsText = 'Remaining Budget: \$${remainingBudget.toStringAsFixed(2)}';
       });
       _animationController.forward(from: 0);
       return;
     }
     
-    // RNG Logic with adjustable strictness
-    final available = balance - fixedCosts;
-    final availableRatio = (available / balance).clamp(0.0, 1.0);
-    final threshold = 0.10 + (_strictnessLevel * availableRatio);
+    // New RNG Logic based on remaining budget
+    // Pure price ratio with strictness multiplier (no base threshold)
+    final priceRatio = remainingBudget > 0 ? (price / remainingBudget).clamp(0.0, 1.0) : 1.0;
+    final threshold = _strictnessLevel * priceRatio; // Pure strictness * price ratio
     final randomValue = Random().nextDouble();
     final shouldBuy = randomValue > threshold;
     
@@ -290,7 +326,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _explanationText = shouldBuy 
           ? buyMessages[Random().nextInt(buyMessages.length)]
           : skipMessages[Random().nextInt(skipMessages.length)];
-      _statsText = 'RNG rolled ${(randomValue * 100).toStringAsFixed(1)}% ${shouldBuy ? '>' : '<'} ${(threshold * 100).toStringAsFixed(1)}%';
+      _statsText = 'RNG rolled ${(randomValue * 100).toStringAsFixed(1)}% ${shouldBuy ? '>' : '<'} ${(threshold * 100).toStringAsFixed(1)}%\nPrice is ${(priceRatio * 100).toStringAsFixed(1)}% of remaining budget';
     });
     
     _animationController.forward(from: 0);
@@ -443,6 +479,51 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   'Current Balance (\$)',
                   _balanceController,
                   '1000',
+                  onChanged: (value) => _updateAvailableBudget(),
+                ),
+                const SizedBox(height: 24),
+                _buildInputField(
+                  'Last Month Total Spend (\$)',
+                  _lastMonthSpendController,
+                  '0',
+                  onChanged: (value) {
+                    _lastMonthSpend = double.tryParse(value) ?? 0.0;
+                    _saveSettings();
+                    _updateAvailableBudget();
+                  },
+                ),
+                const SizedBox(height: 24),
+                _buildInputField(
+                  'Available Budget (\$)',
+                  _availableBudgetController,
+                  '1000',
+                  readOnly: true,
+                  backgroundColor: Colors.grey[100],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F3FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF0078D4), width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Color(0xFF0078D4), size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Available Budget = Current Balance - Last Month Total Spend',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -462,6 +543,39 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       label: const Text('Edit'),
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+                _buildInputField(
+                  'Remaining Budget (\$)',
+                  _remainingBudgetController,
+                  '200',
+                  readOnly: true,
+                  backgroundColor: Colors.green[50],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E8),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.green, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Remaining Budget = Available Budget - Monthly Fixed Costs',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _buildInputField(
@@ -607,13 +721,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
-                  'Decision Threshold = 10% + (${(_strictnessLevel * 100).toStringAsFixed(0)}% × Available/Balance)\n'
-                  'If random > threshold → BUY IT!',
+                  '1. Remaining Budget = Available Budget - Fixed Costs\n'
+                  '2. Price Ratio = Item Price ÷ Remaining Budget\n'
+                  '3. Decision Threshold = Strictness × Price Ratio\n'
+                  '4. Roll random number (0-100%)\n'
+                  '5. If random > threshold → BUY IT!',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.blue[200]!, width: 1),
+                  ),
+                  child: Text(
+                    'At 100% strictness: threshold = pure price ratio. At 0%: always approve. At 300%: extremely strict!',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -888,9 +1023,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                               color: cost.isActive ? const Color(0xFF323130) : Colors.grey,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.delete),
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _showEditFixedCostDialog(cost),
+                            tooltip: 'Edit',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
                             onPressed: () {
                               setState(() {
                                 _fixedCosts.removeWhere((c) => c.id == cost.id);
@@ -898,6 +1038,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                 _saveSettings();
                               });
                             },
+                            tooltip: 'Delete',
                           ),
                         ],
                       ),
@@ -983,10 +1124,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         ),
                         child: Slider(
                           value: _strictnessLevel,
-                          min: 0.1,
-                          max: 0.9,
-                          divisions: 8,
-                          label: '${(_strictnessLevel * 100).toStringAsFixed(0)}%',
+                          min: 0.0,
+                          max: 3.0,
+                          divisions: 30,
+                          label: _strictnessLevel == 0.0 ? 'OFF' : '${(_strictnessLevel * 100).toStringAsFixed(0)}%',
                           onChanged: (value) {
                             setState(() {
                               _strictnessLevel = value;
@@ -1144,9 +1285,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Decision Threshold = 10% + (Strictness × Available/Balance)\n\n'
+                  'Remaining Budget = Available Budget - Fixed Costs\n'
+                  'Price Ratio = Item Price ÷ Remaining Budget\n'
+                  'Decision Threshold = Strictness × Price Ratio\n\n'
                   'If a random number (0-100%) is greater than the threshold, the Oracle says BUY IT!\n\n'
-                  'The more money you have available after fixed costs, the more likely you are to get a "yes" - but it\'s never guaranteed!',
+                  'At 100% strictness (default): threshold equals the price ratio. At 0%: always approve purchases. At 300%: extremely strict - even small purchases relative to budget become hard to approve!',
                   style: TextStyle(fontSize: 16, height: 1.6),
                 ),
                 const SizedBox(height: 32),
@@ -1199,7 +1342,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
   
-  Widget _buildInputField(String label, TextEditingController controller, String hint, {bool readOnly = false}) {
+  Widget _buildInputField(
+    String label, 
+    TextEditingController controller, 
+    String hint, {
+    bool readOnly = false,
+    Function(String)? onChanged,
+    Color? backgroundColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1215,6 +1365,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         TextField(
           controller: controller,
           readOnly: readOnly,
+          onChanged: onChanged,
           keyboardType: label.contains('\$') ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
           decoration: InputDecoration(
             hintText: hint,
@@ -1232,8 +1383,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               borderSide: const BorderSide(color: Color(0xFF0078D4), width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            fillColor: readOnly ? Colors.grey[100] : null,
-            filled: readOnly,
+            fillColor: backgroundColor ?? (readOnly ? Colors.grey[100] : null),
+            filled: readOnly || backgroundColor != null,
           ),
         ),
       ],
@@ -1318,6 +1469,88 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
   
+  void _showEditFixedCostDialog(FixedCost cost) {
+    final nameController = TextEditingController(text: cost.name);
+    final amountController = TextEditingController(text: cost.amount.toString());
+    String selectedCategory = cost.category;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Fixed Cost'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'e.g., Rent, Car Payment',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Amount (\$)',
+                  hintText: '0.00',
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                ),
+                items: ['Housing', 'Transportation', 'Food', 'Utilities', 'Insurance', 'Other']
+                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedCategory = value ?? 'Other';
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final amount = double.tryParse(amountController.text) ?? 0;
+                
+                if (name.isNotEmpty && amount > 0) {
+                  setState(() {
+                    final index = _fixedCosts.indexWhere((c) => c.id == cost.id);
+                    if (index != -1) {
+                      _fixedCosts[index] = FixedCost(
+                        id: cost.id,
+                        name: name,
+                        amount: amount,
+                        category: selectedCategory,
+                        isActive: cost.isActive,
+                      );
+                      _calculateTotalFixedCosts();
+                      _saveSettings();
+                    }
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -1340,16 +1573,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
   
   String _getStrictnessDescription() {
-    if (_strictnessLevel < 0.3) {
-      return 'YOLO Mode - Live dangerously!';
+    if (_strictnessLevel == 0.0) {
+      return 'OFF - Always approve (0% threshold)';
     } else if (_strictnessLevel < 0.5) {
-      return 'Relaxed - Treat yourself often';
-    } else if (_strictnessLevel < 0.7) {
-      return 'Balanced - Reasonable choices';
-    } else if (_strictnessLevel < 0.85) {
-      return 'Strict - Save more, spend less';
+      return 'Generous - Low resistance to purchases';
+    } else if (_strictnessLevel < 1.0) {
+      return 'Moderate - Some price sensitivity';
+    } else if (_strictnessLevel == 1.0) {
+      return 'Balanced - Pure price ratio (Default)';
+    } else if (_strictnessLevel < 2.0) {
+      return 'Strict - High price sensitivity';
+    } else if (_strictnessLevel < 3.0) {
+      return 'Very Strict - Maximum resistance';
     } else {
-      return 'Scrooge Mode - Maximum savings!';
+      return 'Extreme - Nearly impossible approval';
     }
   }
 }

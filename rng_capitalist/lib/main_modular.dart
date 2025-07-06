@@ -224,7 +224,6 @@ class _HomePageState extends State<HomePage> {
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onOracleResult: _onOracleResult,
-          onStrictnessChanged: _onStrictnessChanged,
         );
       case 'History':
         return HistoryPage(purchaseHistory: _purchaseHistory);
@@ -258,7 +257,6 @@ class _HomePageState extends State<HomePage> {
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onOracleResult: _onOracleResult,
-          onStrictnessChanged: _onStrictnessChanged,
         );
     }
   }
