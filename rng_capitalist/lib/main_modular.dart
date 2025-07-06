@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
 import 'utils/storage_utils.dart';
@@ -224,6 +223,7 @@ class _HomePageState extends State<HomePage> {
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onOracleResult: _onOracleResult,
+          onStrictnessChanged: _onStrictnessChanged,
         );
       case 'History':
         return HistoryPage(purchaseHistory: _purchaseHistory);
@@ -257,6 +257,7 @@ class _HomePageState extends State<HomePage> {
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onOracleResult: _onOracleResult,
+          onStrictnessChanged: _onStrictnessChanged,
         );
     }
   }

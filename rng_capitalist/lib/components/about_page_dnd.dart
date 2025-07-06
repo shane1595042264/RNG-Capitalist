@@ -1,7 +1,8 @@
+// lib/components/about_page_dnd.dart
 import 'package:flutter/material.dart';
 
-class AboutPage extends StatelessWidget {
-  const AboutPage({Key? key}) : super(key: key);
+class AboutPageDnD extends StatelessWidget {
+  const AboutPageDnD({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +12,7 @@ class AboutPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'About RNG Capitalist',
+            'About RNG Capitalist - D&D Edition',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w600,
@@ -44,13 +45,15 @@ class AboutPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'RNG Capitalist is built on the principle of bounded rationality. We don\'t have infinite willpower or mental bandwidth, so why not externalize decision-making into an algorithm?\n\n'
-                  'We\'re not solving for "maximize financial success" - we\'re solving for "reduce mental burden and regret." Let chaos manage your wallet!',
+                  'RNG Capitalist D&D Edition brings the thrill of tabletop gaming to your financial decisions. '
+                  'Instead of agonizing over purchases, let the dice decide your fate!\n\n'
+                  'Just like in D&D, every purchase becomes an exciting roll against a Difficulty Class. '
+                  'Add modifiers to represent your circumstances, and watch as the dice determine your financial adventures.',
                   style: TextStyle(fontSize: 16, height: 1.6),
                 ),
                 SizedBox(height: 32),
                 Text(
-                  '📊 The Formula',
+                  '🎯 The Dice Mechanics',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -58,11 +61,30 @@ class AboutPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Remaining Budget = Available Budget - Fixed Costs\n'
-                  'Price Ratio = Item Price ÷ Remaining Budget\n'
-                  'Decision Threshold = Strictness × Price Ratio\n\n'
-                  'If a random number (0-100%) is greater than the threshold, the Oracle says BUY IT!\n\n'
-                  'At 100% strictness (default): threshold equals the price ratio. At 0%: always approve purchases. At 300%: extremely strict - even small purchases relative to budget become hard to approve!',
+                  '• Roll: 1d20 + modifiers\n'
+                  '• Difficulty Class (DC) = (Price ÷ Budget) × 20\n'
+                  '• Success: Roll ≥ DC\n'
+                  '• Critical Success: Natural 20 (always succeeds!)\n'
+                  '• Critical Failure: Natural 1 (always fails!)\n\n'
+                  'Example: \$50 item with \$200 budget = DC 5\n'
+                  'Example: \$180 item with \$200 budget = DC 18',
+                  style: TextStyle(fontSize: 16, height: 1.6),
+                ),
+                SizedBox(height: 32),
+                Text(
+                  '⚔️ Modifiers',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Just like D&D characters have bonuses and penalties, your financial rolls can be modified:\n\n'
+                  '• Positive modifiers: Lucky day, payday, sales\n'
+                  '• Negative modifiers: Stress, bills due, bad mood\n'
+                  '• Stack multiple modifiers for complex situations\n'
+                  '• Create custom modifiers for your unique circumstances',
                   style: TextStyle(fontSize: 16, height: 1.6),
                 ),
                 SizedBox(height: 32),
@@ -75,10 +97,10 @@ class AboutPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Text(
-                  '✅ Phase 1: MVP - Basic Yes/No decisions\n'
-                  '✅ Phase 2: Budget Helper - Track fixed costs & adjustable strictness\n'
-                  '🚧 Phase 3: AI Mode - Smart budget analysis\n'
-                  '🎯 Phase 4: Personality Modes - Reckless, Zen, and more!',
+                  '✅ Phase 1: Basic D20 System\n'
+                  '✅ Phase 2: Modifiers & Custom Rules\n'
+                  '🚧 Phase 3: Character Classes (Saver, Spender, Balanced)\n'
+                  '🎯 Phase 4: Campaign Mode & Achievements',
                   style: TextStyle(fontSize: 16, height: 1.6),
                 ),
               ],
