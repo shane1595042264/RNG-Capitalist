@@ -80,6 +80,7 @@ class AppSidebarDnD extends StatelessWidget {
           _buildNavItem(Icons.auto_awesome, 'Modifiers', currentPage == 'Modifiers'),
           _buildNavItem(Icons.trending_down, 'Sunk Costs', currentPage == 'Sunk Costs'),
           _buildNavItem(Icons.schedule, 'Schedule', currentPage == 'Schedule'),
+          _buildNavItem(Icons.casino, 'Spinner', currentPage == 'Spinner'),
           const Spacer(),
           _buildNavItem(Icons.info_outline, 'About', currentPage == 'About'),
           const SizedBox(height: 24),

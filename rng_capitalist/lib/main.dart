@@ -11,6 +11,7 @@ import 'components/fixed_costs_page.dart';
 import 'components/modifiers_page.dart';
 import 'components/sunk_costs_page.dart';
 import 'components/schedule_page.dart';
+import 'components/spinner_page.dart';
 import 'components/about_page_dnd.dart';
 import 'components/app_sidebar_dnd.dart';
 
@@ -344,6 +345,10 @@ class _HomePageState extends State<HomePage> {
         );
       case 'Schedule':
         return SchedulePage(
+          sunkCosts: _sunkCosts,
+        );
+      case 'Spinner':
+        return SpinnerPage(
           sunkCosts: _sunkCosts,
         );
       case 'About':
