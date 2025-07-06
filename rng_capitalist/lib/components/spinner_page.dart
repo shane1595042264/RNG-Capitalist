@@ -1,5 +1,8 @@
 // lib/components/spinner_page.dart
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:local_notifier/local_notifier.dart';
 import '../models/sunk_cost.dart';
 import '../components/sunk_cost_spinner.dart';
 
@@ -18,6 +21,14 @@ class SpinnerPage extends StatefulWidget {
 class _SpinnerPageState extends State<SpinnerPage> {
   SunkCost? _lastResult;
   List<SunkCost> _spinHistory = [];
+  
+  // Timer-related state
+  Timer? _countdownTimer;
+  Duration _timerDuration = const Duration(hours: 2); // Default 2 hours
+  Duration _remainingTime = Duration.zero;
+  bool _isTimerActive = false;
+  bool _showTimerSettings = false;
+  late AudioPlayer _audioPlayer;
 
   List<SunkCost> get _activeSunkCosts {
     return widget.sunkCosts.where((cost) => cost.isActive).toList();
@@ -36,6 +47,88 @@ class _SpinnerPageState extends State<SpinnerPage> {
         _spinHistory.removeLast();
       }
     });
+    
+    // Auto-start the timer when result lands
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _countdownTimer?.cancel();
+    setState(() {
+      _remainingTime = _timerDuration;
+      _isTimerActive = true;
+    });
+    
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_remainingTime.inSeconds > 0) {
+          _remainingTime = Duration(seconds: _remainingTime.inSeconds - 1);
+        } else {
+          _isTimerActive = false;
+          timer.cancel();
+          _onTimerComplete();
+        }
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _countdownTimer?.cancel();
+    setState(() {
+      _isTimerActive = false;
+      _remainingTime = Duration.zero;
+    });
+  }
+
+  void _resetTimer() {
+    _countdownTimer?.cancel();
+    setState(() {
+      _remainingTime = _timerDuration;
+      _isTimerActive = false;
+    });
+  }
+
+  void _onTimerComplete() async {
+    // Show desktop notification
+    LocalNotification notification = LocalNotification(
+      title: "RNG Capitalist Timer",
+      body: "Your ${_lastResult?.name ?? 'focus session'} time is up! Time for a break or switch tasks.",
+    );
+    notification.show();
+
+    // Try to play notification sound
+    try {
+      // Try to play custom sound first
+      await _audioPlayer.play(AssetSource('sounds/timer_complete.mp3'));
+    } catch (e) {
+      // If custom sound fails, just log it (you could add a system beep here)
+      print('Custom sound not available: $e');
+      // You can add a system beep or other notification sound here
+    }
+    
+    // Show in-app notification as well
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Timer completed! Your ${_lastResult?.name ?? 'focus session'} time is up.'),
+          backgroundColor: Colors.green[600],
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Start Again',
+            textColor: Colors.white,
+            onPressed: _startTimer,
+          ),
+        ),
+      );
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String hours = twoDigits(duration.inHours);
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$hours:$minutes:$seconds';
   }
 
   String _generateActivitySuggestion(SunkCost sunkCost) {
@@ -52,6 +145,21 @@ class _SpinnerPageState extends State<SpinnerPage> {
     } else {
       return 'Spend some time with ${sunkCost.name}';
     }
+  }
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -191,6 +299,9 @@ class _SpinnerPageState extends State<SpinnerPage> {
                     ),
                   ),
           ),
+          
+          // Timer Widget at the bottom
+          if (_isTimerActive || _lastResult != null) _buildTimerWidget(),
         ],
       ),
     );
@@ -498,39 +609,340 @@ class _SpinnerPageState extends State<SpinnerPage> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color textColor) {
-    return Expanded(
+    return Container(
+      constraints: const BoxConstraints(
+        minWidth: 100,
+        maxWidth: 140,
+      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: textColor,
+            size: 24,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: textColor.withOpacity(0.8),
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimerWidget() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _isTimerActive ? Icons.timer : Icons.timer_off,
+                color: _isTimerActive ? Colors.green[600] : Colors.grey[600],
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isTimerActive ? 'Focus Timer Active' : 'Focus Timer',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: _isTimerActive ? Colors.green[600] : Colors.grey[600],
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _showTimerSettings = !_showTimerSettings;
+                  });
+                },
+                icon: Icon(
+                  _showTimerSettings ? Icons.keyboard_arrow_down : Icons.settings,
+                  color: Colors.grey[600],
+                ),
+                tooltip: 'Timer Settings',
+              ),
+            ],
+          ),
+          
+          if (_showTimerSettings) ...[
+            const SizedBox(height: 12),
+            _buildTimerSettings(),
+            const SizedBox(height: 12),
+          ],
+          
+          if (_isTimerActive) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _remainingTime.inMinutes <= 5 
+                      ? [Colors.red[400]!, Colors.red[600]!]
+                      : [Colors.blue[400]!, Colors.blue[600]!],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _formatDuration(_remainingTime),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _stopTimer,
+                  icon: const Icon(Icons.stop),
+                  label: const Text('Stop'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[500],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _resetTimer,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reset'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[500],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ] else if (_lastResult != null) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _startTimer,
+              icon: const Icon(Icons.play_arrow),
+              label: Text('Start ${_formatDuration(_timerDuration)} Timer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[500],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimerSettings() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Timer Duration',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildDurationChip('15 min', const Duration(minutes: 15)),
+              _buildDurationChip('30 min', const Duration(minutes: 30)),
+              _buildDurationChip('1 hour', const Duration(hours: 1)),
+              _buildDurationChip('2 hours', const Duration(hours: 2)),
+              _buildDurationChip('3 hours', const Duration(hours: 3)),
+              _buildDurationChip('Custom', null),
+            ],
+          ),
+          if (_timerDuration.inMinutes % 15 != 0 ||
+              (_timerDuration.inHours == 0 && _timerDuration.inMinutes != 15 && _timerDuration.inMinutes != 30) ||
+              (_timerDuration.inHours > 3)) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Custom: ${_formatDuration(_timerDuration)}',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationChip(String label, Duration? duration) {
+    final isSelected = duration == _timerDuration;
+    final isCustom = duration == null;
+    
+    return GestureDetector(
+      onTap: () async {
+        if (isCustom) {
+          await _showCustomDurationDialog();
+        } else {
+          setState(() {
+            _timerDuration = duration;
+            if (!_isTimerActive) {
+              _remainingTime = _timerDuration;
+            }
+          });
+        }
+      },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? Colors.purple[600] : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: isSelected ? Colors.purple[600]! : Colors.grey[300]!
           ),
         ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: textColor,
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[700],
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCustomDurationDialog() async {
+    int hours = _timerDuration.inHours;
+    int minutes = _timerDuration.inMinutes.remainder(60);
+    
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Custom Timer Duration'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Text('Hours: '),
+                  Expanded(
+                    child: Slider(
+                      value: hours.toDouble(),
+                      min: 0,
+                      max: 12,
+                      divisions: 12,
+                      label: hours.toString(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          hours = value.toInt();
+                        });
+                      },
+                    ),
+                  ),
+                  Text('$hours'),
+                ],
               ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: textColor.withOpacity(0.8),
+              Row(
+                children: [
+                  const Text('Minutes: '),
+                  Expanded(
+                    child: Slider(
+                      value: minutes.toDouble(),
+                      min: 0,
+                      max: 59,
+                      divisions: 59,
+                      label: minutes.toString(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          minutes = value.toInt();
+                        });
+                      },
+                    ),
+                  ),
+                  Text('$minutes'),
+                ],
               ),
-              textAlign: TextAlign.center,
+              const SizedBox(height: 16),
+              Text(
+                'Total: ${_formatDuration(Duration(hours: hours, minutes: minutes))}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _timerDuration = Duration(hours: hours, minutes: minutes);
+                  if (!_isTimerActive) {
+                    _remainingTime = _timerDuration;
+                  }
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Set'),
             ),
           ],
         ),
