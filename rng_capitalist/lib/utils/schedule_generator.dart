@@ -176,7 +176,7 @@ class ScheduleGenerator {
 
   // Google Calendar URL generator
   static String generateGoogleCalendarUrl(DailySchedule schedule) {
-    final baseUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+    const baseUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
     final scheduleDate = schedule.date;
     
     // Create a single all-day event with the schedule details
@@ -207,7 +207,7 @@ class ScheduleGenerator {
       final startTime = '${period.startTime.hour.toString().padLeft(2, '0')}:${period.startTime.minute.toString().padLeft(2, '0')}';
       final endTime = '${period.endTime.hour.toString().padLeft(2, '0')}:${period.endTime.minute.toString().padLeft(2, '0')}';
       
-      buffer.writeln('${startTime} - ${endTime}: ${period.activity}');
+      buffer.writeln('$startTime - $endTime: ${period.activity}');
       buffer.writeln('  Investment: ${period.sunkCost.name} (\$${period.sunkCost.amount.toStringAsFixed(2)})');
       buffer.writeln('  Category: ${period.sunkCost.category}');
       if (i < schedule.periods.length - 1) {

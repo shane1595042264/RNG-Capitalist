@@ -199,7 +199,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
               alignment: Alignment.center,
               children: [
                 // Spinner wheel
-                Container(
+                SizedBox(
                   width: 300,
                   height: 300,
                   child: AnimatedBuilder(

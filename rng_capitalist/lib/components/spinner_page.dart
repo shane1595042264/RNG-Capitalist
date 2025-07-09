@@ -20,7 +20,7 @@ class SpinnerPage extends StatefulWidget {
 
 class _SpinnerPageState extends State<SpinnerPage> {
   SunkCost? _lastResult;
-  List<SunkCost> _spinHistory = [];
+  final List<SunkCost> _spinHistory = [];
   
   // Timer-related state
   Timer? _countdownTimer;
@@ -477,15 +477,15 @@ class _SpinnerPageState extends State<SpinnerPage> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.lightbulb,
                         color: Colors.white,
                         size: 16,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         'Suggestion:',
                         style: TextStyle(
                           fontSize: 12,
