@@ -91,28 +91,46 @@ class HistoryPage extends StatelessWidget {
                         color: item.wasPurchased ? Colors.green : Colors.red,
                         size: 24,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.itemName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      const SizedBox(width: 16),                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.itemName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${item.price.toStringAsFixed(2)} • ${FormatUtils.formatDate(item.date)}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF605E5C),
+                                  ),
+                                ),
+                                // Show cooldown status if item is on cooldown
+                                if (item.isOnCooldown)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                    ),
+                                    child: Text(
+                                      FormatUtils.formatCooldownStatus(item.remainingCooldown),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.orange[800],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            Text(
-                              '\$${item.price.toStringAsFixed(2)} • ${FormatUtils.formatDate(item.date)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF605E5C),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

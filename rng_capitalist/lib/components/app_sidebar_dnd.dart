@@ -1,5 +1,6 @@
 // lib/components/app_sidebar_dnd.dart
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class AppSidebarDnD extends StatelessWidget {
   final String currentPage;
@@ -13,6 +14,8 @@ class AppSidebarDnD extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AuthService authService = AuthService();
+    
     return Container(
       width: 280,
       decoration: BoxDecoration(
@@ -82,11 +85,111 @@ class AppSidebarDnD extends StatelessWidget {
           _buildNavItem(Icons.schedule, 'Schedule', currentPage == 'Schedule'),
           _buildNavItem(Icons.casino, 'Spinner', currentPage == 'Spinner'),
           const Spacer(),
+          
+          // User Profile Section
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.purple.withOpacity(0.1),
+                      backgroundImage: authService.userPhotoUrl != null
+                          ? NetworkImage(authService.userPhotoUrl!)
+                          : null,
+                      child: authService.userPhotoUrl == null
+                          ? Icon(
+                              Icons.person,
+                              size: 20,
+                              color: Colors.purple[700],
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            authService.userDisplayName,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF323130),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            authService.userEmail,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => _signOut(context),
+                    icon: const Icon(Icons.logout, size: 16),
+                    label: const Text('Sign Out'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red[600],
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
           _buildNavItem(Icons.info_outline, 'About', currentPage == 'About'),
           const SizedBox(height: 24),
         ],
       ),
     );
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    try {
+      final AuthService authService = AuthService();
+      await authService.signOut();
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Successfully signed out'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Sign out failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildNavItem(IconData icon, String label, bool isActive) {

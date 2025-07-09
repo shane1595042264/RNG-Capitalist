@@ -1,10 +1,14 @@
-// lib/main_dnd.dart
+// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
 import 'models/dice_modifier.dart';
 import 'models/sunk_cost.dart';
-import 'utils/storage_utils_dnd.dart';
+import 'services/auth_service.dart';
+import 'services/firestore_service.dart';
+import 'components/login_page.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
@@ -15,7 +19,11 @@ import 'components/spinner_page.dart';
 import 'components/about_page_dnd.dart';
 import 'components/app_sidebar_dnd.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const RNGCapitalistApp());
 }
 
@@ -34,7 +42,35 @@ class RNGCapitalistApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final AuthService authService = AuthService();
+    
+    return StreamBuilder(
+      stream: authService.authStateChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        if (snapshot.hasData && snapshot.data != null) {
+          return const HomePage();
+        }
+        
+        return const LoginPage();
+      },
     );
   }
 }
@@ -47,6 +83,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Services
+  final FirestoreService _firestoreService = FirestoreService();
+  
   // Controllers
   final _balanceController = TextEditingController();
   final _fixedCostsController = TextEditingController();
@@ -117,31 +156,53 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadSettings() async {
-    final data = await StorageUtilsDnD.loadSettings();
-    setState(() {
-      _balanceController.text = data.lastBalance;
-      _lastMonthSpend = data.lastMonthSpend;
-      _fixedCosts = data.fixedCosts;
-      _purchaseHistory = data.purchaseHistory;
-      _sunkCosts = data.sunkCosts;
-      if (data.modifiers.isNotEmpty) {
-        _modifiers = data.modifiers;
+    try {
+      final data = await _firestoreService.loadUserData();
+      setState(() {
+        _balanceController.text = data.lastBalance;
+        _lastMonthSpend = data.lastMonthSpend;
+        _fixedCosts = data.fixedCosts;
+        _purchaseHistory = data.purchaseHistory;
+        _sunkCosts = data.sunkCosts;
+        if (data.modifiers.isNotEmpty) {
+          _modifiers = data.modifiers;
+        }
+      });
+      _calculateTotalFixedCosts();
+      _updateLastMonthSpendController();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    });
-    _calculateTotalFixedCosts();
-    _updateLastMonthSpendController();
+    }
   }
 
   Future<void> _saveSettings() async {
-    final data = AppDataDnD(
-      lastBalance: _balanceController.text,
-      lastMonthSpend: _lastMonthSpend,
-      fixedCosts: _fixedCosts,
-      purchaseHistory: _purchaseHistory,
-      modifiers: _modifiers,
-      sunkCosts: _sunkCosts,
-    );
-    await StorageUtilsDnD.saveSettings(data);
+    try {
+      final data = AppDataCloud(
+        lastBalance: _balanceController.text,
+        lastMonthSpend: _lastMonthSpend,
+        fixedCosts: _fixedCosts,
+        purchaseHistory: _purchaseHistory,
+        modifiers: _modifiers,
+        sunkCosts: _sunkCosts,
+      );
+      await _firestoreService.saveUserData(data);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _updateLastMonthSpendController() {
@@ -314,6 +375,7 @@ class _HomePageState extends State<HomePage> {
           remainingBudgetController: _remainingBudgetController,
           lastMonthSpend: _lastMonthSpend,
           activeModifiers: _modifiers.where((m) => m.isActive).toList(),
+          purchaseHistory: _purchaseHistory,
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onPurchaseDecision: _onPurchaseDecision,
@@ -364,6 +426,7 @@ class _HomePageState extends State<HomePage> {
           remainingBudgetController: _remainingBudgetController,
           lastMonthSpend: _lastMonthSpend,
           activeModifiers: _modifiers.where((m) => m.isActive).toList(),
+          purchaseHistory: _purchaseHistory,
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
           onPurchaseDecision: _onPurchaseDecision,

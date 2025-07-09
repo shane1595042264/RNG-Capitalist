@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../models/dice_modifier.dart';
 import '../models/purchase_history.dart';
+import '../utils/format_utils.dart';
 import 'dice_roll_overlay.dart';
 
 class OraclePageDnD extends StatefulWidget {
@@ -14,6 +15,7 @@ class OraclePageDnD extends StatefulWidget {
   final TextEditingController remainingBudgetController;
   final double lastMonthSpend;
   final List<DiceModifier> activeModifiers;
+  final List<PurchaseHistory> purchaseHistory;
   final Function(String) onNavigateTo;
   final Function(double) onLastMonthSpendChanged;
   final Function(PurchaseHistory) onPurchaseDecision;
@@ -29,6 +31,7 @@ class OraclePageDnD extends StatefulWidget {
     required this.remainingBudgetController,
     required this.lastMonthSpend,
     required this.activeModifiers,
+    required this.purchaseHistory,
     required this.onNavigateTo,
     required this.onLastMonthSpendChanged,
     required this.onPurchaseDecision,
@@ -73,6 +76,35 @@ class _OraclePageDnDState extends State<OraclePageDnD> {
       return;
     }
     
+    // Check for cooldown on this item
+    final cooldownItem = widget.purchaseHistory.firstWhere(
+      (item) => item.itemName.toLowerCase() == itemName.toLowerCase() && 
+                item.isOnCooldown,
+      orElse: () => PurchaseHistory(
+        id: '',
+        itemName: '',
+        price: 0,
+        date: DateTime.now(),
+        wasPurchased: true,
+        threshold: 0,
+        rollValue: 0,
+      ),
+    );
+    
+    if (cooldownItem.id.isNotEmpty) {
+      final cooldownDuration = cooldownItem.remainingCooldown!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Item "$itemName" is on cooldown! ${FormatUtils.formatCooldownStatus(cooldownDuration)}',
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    
     // Show dice roll overlay
     showDialog(
       context: context,
@@ -83,7 +115,8 @@ class _OraclePageDnDState extends State<OraclePageDnD> {
         availableBudget: remainingBudget,
         activeModifiers: widget.activeModifiers,
         onRollComplete: (success, roll, threshold, total) {
-          // Create purchase history
+          // Create purchase history with cooldown for rejected items
+          final availableBudget = double.tryParse(widget.availableBudgetController.text) ?? 0.0;
           final history = PurchaseHistory(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             itemName: itemName,
@@ -92,20 +125,28 @@ class _OraclePageDnDState extends State<OraclePageDnD> {
             wasPurchased: success,
             threshold: threshold.toDouble(),
             rollValue: total.toDouble(),
+            availableBudget: availableBudget,
+            cooldownUntil: success ? null : PurchaseHistory.calculateCooldownUntil(price, availableBudget),
           );
           
           widget.onPurchaseDecision(history);
           Navigator.pop(context);
           
-          // Show result message
+          // Show result message with cooldown info for rejected items
+          String message = success 
+              ? '🎉 Purchase approved! You rolled $total vs DC $threshold'
+              : '❌ Purchase denied! You rolled $total vs DC $threshold';
+          
+          if (!success && history.cooldownUntil != null) {
+            final cooldownDuration = history.cooldownUntil!.difference(DateTime.now());
+            message += '\nCooldown: ${FormatUtils.formatCooldownDuration(cooldownDuration)}';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                success 
-                  ? '🎉 Purchase approved! You rolled $total vs DC $threshold'
-                  : '❌ Purchase denied! You rolled $total vs DC $threshold',
-              ),
+              content: Text(message),
               backgroundColor: success ? Colors.green : Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         },

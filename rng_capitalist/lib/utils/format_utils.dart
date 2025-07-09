@@ -37,4 +37,29 @@ class FormatUtils {
       return 'Extreme - Nearly impossible approval';
     }
   }
+
+  static String formatCooldownDuration(Duration duration) {
+    if (duration.inDays >= 365) {
+      return '~1 year';
+    } else if (duration.inDays >= 30) {
+      final months = (duration.inDays / 30).floor();
+      return '$months month${months > 1 ? 's' : ''}';
+    } else if (duration.inDays >= 7) {
+      final weeks = (duration.inDays / 7).floor();
+      return '$weeks week${weeks > 1 ? 's' : ''}';
+    } else if (duration.inDays > 0) {
+      return '${duration.inDays} day${duration.inDays > 1 ? 's' : ''}';
+    } else if (duration.inHours > 0) {
+      return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''}';
+    } else if (duration.inMinutes > 0) {
+      return '${duration.inMinutes} minute${duration.inMinutes > 1 ? 's' : ''}';
+    } else {
+      return 'Less than a minute';
+    }
+  }
+
+  static String formatCooldownStatus(Duration? remainingCooldown) {
+    if (remainingCooldown == null) return '';
+    return 'Cooldown: ${formatCooldownDuration(remainingCooldown)} remaining';
+  }
 }
