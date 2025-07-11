@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "911680739260",
+    "project_id": "rng-capitalist",
+    "storage_bucket": "rng-capitalist.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:911680739260:android:50c5348ee071f78ba97db9",
+        "android_client_info": {
+          "package_name": "com.example.rng_capitalist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOnDhjZCVIDZWRtmCNU1GSce8iZxEmI3A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -41,50 +41,51 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-    measurementId: 'YOUR_MEASUREMENT_ID',
+    apiKey: 'AIzaSyAQ1kZIG6dXHHekLVUAGHaTyGzOD8UVQYY',
+    appId: '1:911680739260:web:d4ec26b123a0efe3a97db9',
+    messagingSenderId: '911680739260',
+    projectId: 'rng-capitalist',
+    authDomain: 'rng-capitalist.firebaseapp.com',
+    storageBucket: 'rng-capitalist.firebasestorage.app',
+    measurementId: 'G-ZC6VXVBGTP',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyAOnDhjZCVIDZWRtmCNU1GSce8iZxEmI3A',
+    appId: '1:911680739260:android:50c5348ee071f78ba97db9',
+    messagingSenderId: '911680739260',
+    projectId: 'rng-capitalist',
+    storageBucket: 'rng-capitalist.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: 'YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBgtFStl1aDRto-26vXvvgGy7Vz6eRcxXY',
+    appId: '1:911680739260:ios:ed47b1f068ac6d94a97db9',
+    messagingSenderId: '911680739260',
+    projectId: 'rng-capitalist',
+    storageBucket: 'rng-capitalist.firebasestorage.app',
     iosBundleId: 'com.example.rngCapitalist',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_MACOS_API_KEY',
-    appId: 'YOUR_MACOS_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBgtFStl1aDRto-26vXvvgGy7Vz6eRcxXY',
+    appId: '1:911680739260:ios:ed47b1f068ac6d94a97db9',
+    messagingSenderId: '911680739260',
+    projectId: 'rng-capitalist',
+    storageBucket: 'rng-capitalist.firebasestorage.app',
     iosBundleId: 'com.example.rngCapitalist',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'YOUR_WINDOWS_API_KEY',
-    appId: 'YOUR_WINDOWS_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-    measurementId: 'YOUR_MEASUREMENT_ID',
+    apiKey: 'AIzaSyAQ1kZIG6dXHHekLVUAGHaTyGzOD8UVQYY',
+    appId: '1:911680739260:web:fbdd52a2663dba87a97db9',
+    messagingSenderId: '911680739260',
+    projectId: 'rng-capitalist',
+    authDomain: 'rng-capitalist.firebaseapp.com',
+    storageBucket: 'rng-capitalist.firebasestorage.app',
+    measurementId: 'G-H4H14NXZF1',
   );
+
 }
 
 // TODO: Replace the placeholder values above with your actual Firebase configuration

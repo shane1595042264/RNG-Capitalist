@@ -15,10 +15,8 @@ dependencies:
   local_notifier: ^0.1.6
   audioplayers: ^5.2.1
   # Firebase dependencies
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  google_sign_in: ^6.1.6
+  firebase_core: ^2.15.1
+  cloud_firestore: ^4.9.1
 
 dev_dependencies:
   flutter_test:
