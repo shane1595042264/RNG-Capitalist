@@ -4,14 +4,13 @@ import '../models/fixed_cost.dart';
 import '../models/purchase_history.dart';
 import '../models/dice_modifier.dart';
 import '../models/sunk_cost.dart';
-import 'auth_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final AuthService _authService = AuthService();
+  final String _defaultUserId = 'default_user'; // Use a default user ID instead of auth
 
   // Get user document reference
-  DocumentReference get _userDoc => _firestore.collection('users').doc(_authService.userId);
+  DocumentReference get _userDoc => _firestore.collection('users').doc(_defaultUserId);
 
   // Save user data to Firestore
   Future<void> saveUserData(AppDataCloud data) async {

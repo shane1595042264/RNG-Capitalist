@@ -1,16 +1,29 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
-import 'utils/storage_utils.dart';
-import 'utils/oracle_utils.dart';
-import 'components/app_sidebar.dart';
-import 'components/oracle_page.dart';
+import 'models/dice_modifier.dart';
+import 'models/sunk_cost.dart';
+import 'services/complete_firestore_service.dart';
+import 'services/user_auth_service.dart';
+import 'screens/auth_screen.dart';
+import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
-import 'components/settings_page.dart';
-import 'components/about_page.dart';
+import 'components/modifiers_page.dart';
+import 'components/sunk_costs_page.dart';
+import 'components/schedule_page.dart';
+import 'components/spinner_page.dart';
+import 'components/about_page_dnd.dart';
+import 'components/app_sidebar_dnd.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const RNGCapitalistApp());
 }
 
@@ -20,11 +33,11 @@ class RNGCapitalistApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RNG Capitalist',
+      title: 'RNG Capitalist - D&D Edition',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0078D4),
+          seedColor: Colors.purple,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
@@ -42,6 +55,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Services
+  final CompleteFirestoreService _firestoreService = CompleteFirestoreService();
+  
   // Controllers
   final _balanceController = TextEditingController();
   final _fixedCostsController = TextEditingController();
@@ -52,9 +68,10 @@ class _HomePageState extends State<HomePage> {
   final _remainingBudgetController = TextEditingController();
   
   // State variables
-  double _strictnessLevel = 1.0;
   List<FixedCost> _fixedCosts = [];
   List<PurchaseHistory> _purchaseHistory = [];
+  List<DiceModifier> _modifiers = [];
+  List<SunkCost> _sunkCosts = [];
   double _lastMonthSpend = 0.0;
   String _currentPage = 'Oracle';
   
@@ -62,6 +79,40 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadSettings();
+    _initializeDefaultModifiers();
+  }
+  
+  void _initializeDefaultModifiers() {
+    // Get all preset modifiers
+    final presetModifiers = DiceModifier.getPresetModifiers();
+    
+    // If no saved modifiers, use presets
+    if (_modifiers.isEmpty) {
+      _modifiers = presetModifiers;
+    } else {
+      // Merge saved modifiers with presets, preserving saved states
+      final mergedModifiers = <DiceModifier>[];
+      
+      // First, add all preset modifiers with saved states if available
+      for (var preset in presetModifiers) {
+        final saved = _modifiers.firstWhere(
+          (m) => m.id == preset.id,
+          orElse: () => preset,
+        );
+        mergedModifiers.add(preset.copyWith(
+          isActive: saved.isActive,
+          isUnlocked: saved.isUnlocked,
+        ));
+      }
+      
+      // Then add any custom modifiers not in presets
+      final customModifiers = _modifiers.where((m) => 
+        !presetModifiers.any((p) => p.id == m.id)
+      ).toList();
+      mergedModifiers.addAll(customModifiers);
+      
+      _modifiers = mergedModifiers;
+    }
   }
   
   @override
@@ -77,27 +128,80 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadSettings() async {
-    final data = await StorageUtils.loadSettings();
-    setState(() {
-      _strictnessLevel = data.strictnessLevel;
-      _balanceController.text = data.lastBalance;
-      _lastMonthSpend = data.lastMonthSpend;
-      _fixedCosts = data.fixedCosts;
-      _purchaseHistory = data.purchaseHistory;
-    });
-    _calculateTotalFixedCosts();
-    _updateLastMonthSpendController();
+    try {
+      final data = await _firestoreService.loadCompleteData();
+      setState(() {
+        _balanceController.text = data.lastBalance;
+        _lastMonthSpend = data.lastMonthSpend;
+        _fixedCosts = data.fixedCosts;
+        _purchaseHistory = data.purchaseHistory;
+        _sunkCosts = data.sunkCosts;
+        if (data.modifiers.isNotEmpty) {
+          _modifiers = data.modifiers;
+        }
+        _currentPage = data.currentPage;
+      });
+      _calculateTotalFixedCosts();
+      _updateLastMonthSpendController();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveSettings() async {
-    final data = AppData(
-      strictnessLevel: _strictnessLevel,
-      lastBalance: _balanceController.text,
-      lastMonthSpend: _lastMonthSpend,
-      fixedCosts: _fixedCosts,
-      purchaseHistory: _purchaseHistory,
-    );
-    await StorageUtils.saveSettings(data);
+    try {
+      final data = CompleteAppData(
+        lastBalance: _balanceController.text,
+        lastMonthSpend: _lastMonthSpend,
+        availableBudget: double.tryParse(_availableBudgetController.text) ?? 0.0,
+        remainingBudget: double.tryParse(_remainingBudgetController.text) ?? 0.0,
+        fixedCosts: _fixedCosts,
+        purchaseHistory: _purchaseHistory,
+        modifiers: _modifiers,
+        sunkCosts: _sunkCosts,
+        appSettings: {
+          'theme': 'light',
+          'notifications': true,
+          'autoSync': true,
+          'currency': 'USD',
+        },
+        cooldownTimers: {},
+        modifierStates: Map.fromEntries(_modifiers.map((m) => MapEntry(m.id, m.isActive))),
+        currentPage: _currentPage,
+        scheduleData: {},
+        investmentHistory: [],
+        spinnerHistory: {},
+        deviceName: 'Windows Device',
+        platform: 'windows',
+        lastSyncTime: DateTime.now(),
+      );
+      await _firestoreService.saveCompleteData(data);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Data synced to cloud!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _updateLastMonthSpendController() {
@@ -134,9 +238,9 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _onOracleResult(DecisionResult result) {
+  void _onPurchaseDecision(PurchaseHistory history) {
     setState(() {
-      _purchaseHistory.insert(0, result.historyItem);
+      _purchaseHistory.insert(0, history);
       if (_purchaseHistory.length > 100) {
         _purchaseHistory.removeLast();
       }
@@ -151,9 +255,28 @@ class _HomePageState extends State<HomePage> {
     _saveSettings();
   }
 
-  void _onStrictnessChanged(double value) {
+  void _onToggleModifier(DiceModifier modifier) {
     setState(() {
-      _strictnessLevel = value;
+      final index = _modifiers.indexWhere((m) => m.id == modifier.id);
+      if (index != -1) {
+        _modifiers[index] = modifier;
+      } else {
+        _modifiers.add(modifier);
+      }
+    });
+    _saveSettings();
+  }
+
+  void _onAddModifier(DiceModifier modifier) {
+    setState(() {
+      _modifiers.add(modifier);
+    });
+    _saveSettings();
+  }
+
+  void _onDeleteModifier(String modifierId) {
+    setState(() {
+      _modifiers.removeWhere((m) => m.id == modifierId);
     });
     _saveSettings();
   }
@@ -200,9 +323,40 @@ class _HomePageState extends State<HomePage> {
     _saveSettings();
   }
 
-  void _onClearHistory() {
+  void _onAddSunkCost(SunkCost cost) {
     setState(() {
-      _purchaseHistory.clear();
+      _sunkCosts.add(cost);
+    });
+    _saveSettings();
+  }
+
+  void _onEditSunkCost(SunkCost updatedCost) {
+    setState(() {
+      final index = _sunkCosts.indexWhere((c) => c.id == updatedCost.id);
+      if (index != -1) {
+        _sunkCosts[index] = updatedCost;
+      }
+    });
+    _saveSettings();
+  }
+
+  void _onDeleteSunkCost(String costId) {
+    setState(() {
+      _sunkCosts.removeWhere((c) => c.id == costId);
+    });
+    _saveSettings();
+  }
+
+  void _onToggleSunkCost(SunkCost cost, bool isActive) {
+    setState(() {
+      final index = _sunkCosts.indexOf(cost);
+      _sunkCosts[index] = SunkCost(
+        id: cost.id,
+        name: cost.name,
+        amount: cost.amount,
+        category: cost.category,
+        isActive: isActive,
+      );
     });
     _saveSettings();
   }
@@ -210,7 +364,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildMainContent() {
     switch (_currentPage) {
       case 'Oracle':
-        return OraclePage(
+        return OraclePageDnD(
           balanceController: _balanceController,
           fixedCostsController: _fixedCostsController,
           priceController: _priceController,
@@ -219,11 +373,11 @@ class _HomePageState extends State<HomePage> {
           availableBudgetController: _availableBudgetController,
           remainingBudgetController: _remainingBudgetController,
           lastMonthSpend: _lastMonthSpend,
-          strictnessLevel: _strictnessLevel,
+          activeModifiers: _modifiers.where((m) => m.isActive).toList(),
+          purchaseHistory: _purchaseHistory,
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
-          onOracleResult: _onOracleResult,
-          onStrictnessChanged: _onStrictnessChanged,
+          onPurchaseDecision: _onPurchaseDecision,
         );
       case 'History':
         return HistoryPage(purchaseHistory: _purchaseHistory);
@@ -235,16 +389,33 @@ class _HomePageState extends State<HomePage> {
           onDeleteCost: _onDeleteFixedCost,
           onToggleCost: _onToggleFixedCost,
         );
-      case 'Settings':
-        return SettingsPage(
-          strictnessLevel: _strictnessLevel,
-          onStrictnessChanged: _onStrictnessChanged,
-          onClearHistory: _onClearHistory,
+      case 'Modifiers':
+        return ModifiersPage(
+          userModifiers: _modifiers,
+          onToggleModifier: _onToggleModifier,
+          onAddModifier: _onAddModifier,
+          onDeleteModifier: _onDeleteModifier,
+        );
+      case 'Sunk Costs':
+        return SunkCostsPage(
+          sunkCosts: _sunkCosts,
+          onAddCost: _onAddSunkCost,
+          onEditCost: _onEditSunkCost,
+          onDeleteCost: _onDeleteSunkCost,
+          onToggleCost: _onToggleSunkCost,
+        );
+      case 'Schedule':
+        return SchedulePage(
+          sunkCosts: _sunkCosts,
+        );
+      case 'Spinner':
+        return SpinnerPage(
+          sunkCosts: _sunkCosts,
         );
       case 'About':
-        return const AboutPage();
+        return const AboutPageDnD();
       default:
-        return OraclePage(
+        return OraclePageDnD(
           balanceController: _balanceController,
           fixedCostsController: _fixedCostsController,
           priceController: _priceController,
@@ -253,11 +424,11 @@ class _HomePageState extends State<HomePage> {
           availableBudgetController: _availableBudgetController,
           remainingBudgetController: _remainingBudgetController,
           lastMonthSpend: _lastMonthSpend,
-          strictnessLevel: _strictnessLevel,
+          activeModifiers: _modifiers.where((m) => m.isActive).toList(),
+          purchaseHistory: _purchaseHistory,
           onNavigateTo: _navigateTo,
           onLastMonthSpendChanged: _onLastMonthSpendChanged,
-          onOracleResult: _onOracleResult,
-          onStrictnessChanged: _onStrictnessChanged,
+          onPurchaseDecision: _onPurchaseDecision,
         );
     }
   }
@@ -266,9 +437,42 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F3F3),
+      appBar: AppBar(
+        title: Text('RNG Capitalist - $_currentPage'),
+        backgroundColor: Colors.purple.shade100,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_sync, color: Colors.purple),
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🔄 Syncing data to cloud...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              await _saveSettings();
+            },
+            tooltip: 'Sync to Cloud',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.purple),
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🔄 Loading data from cloud...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              await _loadSettings();
+            },
+            tooltip: 'Load from Cloud',
+          ),
+        ],
+      ),
       body: Row(
         children: [
-          AppSidebar(
+          AppSidebarDnD(
             currentPage: _currentPage,
             onNavigate: _navigateTo,
           ),
@@ -276,6 +480,51 @@ class _HomePageState extends State<HomePage> {
             child: _buildMainContent(),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Test cloud connection and show sync status
+          final status = await _firestoreService.getSyncStatus();
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('☁️ Cloud Sync Status'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Has Data: ${status['hasData'] ? '✅ Yes' : '❌ No'}'),
+                    if (status['hasData']) ...[
+                      const SizedBox(height: 8),
+                      Text('User ID: ${status['userId']?.toString().substring(0, 12)}...'),
+                      Text('Device: ${status['deviceName']}'),
+                      Text('Platform: ${status['platform']}'),
+                      Text('Last Sync: ${status['lastSyncTime']}'),
+                      const SizedBox(height: 8),
+                      const Text('📊 Data Counts:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('• Fixed Costs: ${status['itemCounts']['fixedCosts']}'),
+                      Text('• Purchase History: ${status['itemCounts']['purchaseHistory']}'),
+                      Text('• Modifiers: ${status['itemCounts']['modifiers']}'),
+                      Text('• Sunk Costs: ${status['itemCounts']['sunkCosts']}'),
+                      Text('• Investment History: ${status['itemCounts']['investmentHistory']}'),
+                      Text('• Cooldowns: ${status['itemCounts']['cooldowns']}'),
+                    ],
+                  },
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+        backgroundColor: Colors.purple,
+        tooltip: 'View Cloud Sync Status',
+        child: const Icon(Icons.cloud_queue, color: Colors.white),
       ),
     );
   }

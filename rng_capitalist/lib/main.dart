@@ -1,14 +1,15 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'dart:io';
 import 'firebase_options.dart';
 import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
 import 'models/dice_modifier.dart';
 import 'models/sunk_cost.dart';
-import 'services/auth_service.dart';
-import 'services/firestore_service.dart';
-import 'components/login_page.dart';
+import 'services/user_auth_service.dart';
+import 'services/complete_firestore_service.dart';
+import 'screens/auth_screen.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
@@ -42,35 +43,7 @@ class RNGCapitalistApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
-    
-    return StreamBuilder(
-      stream: authService.authStateChanges,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        
-        if (snapshot.hasData && snapshot.data != null) {
-          return const HomePage();
-        }
-        
-        return const LoginPage();
-      },
+      home: const HomePage(),
     );
   }
 }
@@ -84,7 +57,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Services
-  final FirestoreService _firestoreService = FirestoreService();
+  final CompleteFirestoreService _firestoreService = CompleteFirestoreService();
   
   // Controllers
   final _balanceController = TextEditingController();
@@ -157,19 +130,21 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadSettings() async {
     try {
-      final data = await _firestoreService.loadUserData();
-      setState(() {
-        _balanceController.text = data.lastBalance;
-        _lastMonthSpend = data.lastMonthSpend;
-        _fixedCosts = data.fixedCosts;
-        _purchaseHistory = data.purchaseHistory;
-        _sunkCosts = data.sunkCosts;
-        if (data.modifiers.isNotEmpty) {
-          _modifiers = data.modifiers;
-        }
-      });
-      _calculateTotalFixedCosts();
-      _updateLastMonthSpendController();
+      final data = await _firestoreService.loadCompleteData();
+      if (data != null) {
+        setState(() {
+          _balanceController.text = data.lastBalance;
+          _lastMonthSpend = data.lastMonthSpend;
+          _fixedCosts = data.fixedCosts;
+          _purchaseHistory = data.purchaseHistory;
+          _sunkCosts = data.sunkCosts;
+          if (data.modifiers.isNotEmpty) {
+            _modifiers = data.modifiers;
+          }
+        });
+        _calculateTotalFixedCosts();
+        _updateLastMonthSpendController();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -184,15 +159,32 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _saveSettings() async {
     try {
-      final data = AppDataCloud(
+      final currentBalance = double.tryParse(_balanceController.text) ?? 0.0;
+      final availableBudget = currentBalance - _lastMonthSpend;
+      final totalFixedCosts = _fixedCosts.where((c) => c.isActive).fold(0.0, (sum, cost) => sum + cost.amount);
+      final remainingBudget = availableBudget - totalFixedCosts;
+      
+      final data = CompleteAppData(
         lastBalance: _balanceController.text,
         lastMonthSpend: _lastMonthSpend,
+        availableBudget: availableBudget,
+        remainingBudget: remainingBudget,
         fixedCosts: _fixedCosts,
         purchaseHistory: _purchaseHistory,
         modifiers: _modifiers,
         sunkCosts: _sunkCosts,
+        appSettings: {},
+        cooldownTimers: {},
+        modifierStates: {},
+        currentPage: _currentPage,
+        scheduleData: {},
+        investmentHistory: [],
+        spinnerHistory: {},
+        deviceName: Platform.isWindows ? 'Windows PC' : 'Unknown',
+        platform: Platform.operatingSystem,
+        lastSyncTime: DateTime.now(),
       );
-      await _firestoreService.saveUserData(data);
+      await _firestoreService.saveCompleteData(data);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

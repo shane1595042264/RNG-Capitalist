@@ -1,10 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/firestore_service.dart';
 import '../utils/storage_utils_dnd.dart';
-import '../models/fixed_cost.dart';
-import '../models/purchase_history.dart';
-import '../models/dice_modifier.dart';
-import '../models/sunk_cost.dart';
 
 class DataMigrationService {
   final FirestoreService _firestoreService = FirestoreService();

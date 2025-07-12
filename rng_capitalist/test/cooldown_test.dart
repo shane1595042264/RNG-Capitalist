@@ -1,7 +1,7 @@
 // Test file to verify cooldown functionality
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/models/purchase_history.dart';
-import '../lib/utils/format_utils.dart';
+import 'package:rng_capitalist/models/purchase_history.dart';
+import 'package:rng_capitalist/utils/format_utils.dart';
 
 void main() {
   group('Cooldown System Tests', () {

@@ -115,11 +115,11 @@ class _FirebaseTestPageState extends State<FirebaseTestPage> {
       });
       
       setState(() {
-        _status = _status + '\n\n✅ Firestore write test successful!';
+        _status = '$_status\n\n✅ Firestore write test successful!';
       });
     } catch (e) {
       setState(() {
-        _status = _status + '\n\n❌ Firestore write test failed: $e';
+        _status = '$_status\n\n❌ Firestore write test failed: $e';
       });
     }
   }
