@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'firebase_options.dart';
 import 'models/fixed_cost.dart';
@@ -26,6 +27,16 @@ import 'components/social_sharing_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+    print('✅ Environment variables loaded successfully');
+  } catch (e) {
+    print('⚠️ Warning: Could not load .env file: $e');
+    print('AI features may not work without proper API key configuration');
+  }
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

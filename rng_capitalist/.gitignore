@@ -41,3 +41,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables - NEVER COMMIT THESE!
+.env
+.env.local
+.env.production
+.env.staging
+
+# API keys and secrets
+**/google-services.json
+**/GoogleService-Info.plist
+secrets.dart
+api_keys.dart

@@ -2,9 +2,11 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/sunk_cost.dart';
 
 class AIDocumentService {
@@ -15,15 +17,24 @@ class AIDocumentService {
   final _textRecognizer = TextRecognizer();
   GenerativeModel? _geminiModel;
 
-  // Initialize Gemini AI model
+  // Initialize Gemini AI model with API key from environment
   void _initializeGemini() {
     if (_geminiModel == null) {
-      // You'll need to get a free API key from https://aistudio.google.com/app/apikey
-      const apiKey = 'AIzaSyDhUNdRo2pAYfqIQGMAHJFzG8hQF-mFe8w'; // Replace with your actual API key
+      final apiKey = dotenv.env['GOOGLE_GEMINI_API_KEY'];
+      
+      if (apiKey == null || apiKey.isEmpty || apiKey == 'your_api_key_here') {
+        debugPrint('❌ ERROR: Google Gemini API key not found!');
+        debugPrint('Please set GOOGLE_GEMINI_API_KEY in your .env file');
+        debugPrint('Get a free API key from: https://aistudio.google.com/app/apikey');
+        throw Exception('Google Gemini API key not configured. Please check your .env file.');
+      }
+      
       _geminiModel = GenerativeModel(
         model: 'gemini-1.5-flash',
         apiKey: apiKey,
       );
+      
+      debugPrint('✅ Google Gemini AI initialized successfully');
     }
   }
 
