@@ -1,16 +1,18 @@
 // lib/components/app_sidebar_dnd.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/user_auth_service.dart';
 
 class AppSidebarDnD extends StatelessWidget {
   final String currentPage;
   final Function(String) onNavigate;
+  final VoidCallback? onLogout; // Add logout callback
 
   const AppSidebarDnD({
     Key? key,
     required this.currentPage,
     required this.onNavigate,
+    this.onLogout, // Optional logout callback
   }) : super(key: key);
 
   @override
@@ -180,7 +182,7 @@ class AppSidebarDnD extends StatelessWidget {
             width: double.infinity,
             child: TextButton.icon(
               onPressed: () {
-                showAccountSettings(context);
+                showAccountSettings(context, onLogout);
               },
               icon: const Icon(Icons.account_circle, size: 16),
               label: const Text('Account'),
@@ -200,12 +202,19 @@ class AppSidebarDnD extends StatelessWidget {
                 try {
                   final authService = UserAuthService();
                   await authService.logoutUser();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🚪 Logged out successfully. Restart app to login again.'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
+                  
+                  // Call the logout callback to navigate back to login
+                  if (onLogout != null) {
+                    onLogout!();
+                  } else {
+                    // Fallback message if no callback provided
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('🚪 Logged out successfully. Restart app to login again.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -225,6 +234,59 @@ class AppSidebarDnD extends StatelessWidget {
           ),
           
           _buildNavItem(Icons.info_outline, 'About', currentPage == 'About'),
+          
+          // Report Bugs Button
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () async {
+                final Uri url = Uri.parse('https://github.com/shane1595042264/RNG-Capitalist/issues');
+                try {
+                  // Try to launch the URL
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    // Fallback: show a dialog with the URL
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Report Bugs'),
+                          content: SelectableText(
+                            'Please visit our GitHub issues page to report bugs:\n\n${url.toString()}',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  // Show error dialog
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not open URL: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.bug_report, size: 16),
+              label: const Text('Report Bugs'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.orange[600],
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+            ),
+          ),
+          
           const SizedBox(height: 24),
         ],
       ),
@@ -273,7 +335,7 @@ class AppSidebarDnD extends StatelessWidget {
   }
 }
 
-void showAccountSettings(BuildContext context) async {
+void showAccountSettings(BuildContext context, [VoidCallback? onLogout]) async {
   final authService = UserAuthService();
   final userProfile = await authService.getUserProfile();
   final currentUserId = await authService.getCurrentUserId();
@@ -285,6 +347,7 @@ void showAccountSettings(BuildContext context) async {
     builder: (context) => AccountSettingsDialog(
       userId: currentUserId ?? 'Unknown',
       userProfile: userProfile,
+      onLogout: onLogout,
     ),
   );
 }
@@ -292,11 +355,13 @@ void showAccountSettings(BuildContext context) async {
 class AccountSettingsDialog extends StatefulWidget {
   final String userId;
   final Map<String, dynamic>? userProfile;
+  final VoidCallback? onLogout;
 
   const AccountSettingsDialog({
     Key? key,
     required this.userId,
     this.userProfile,
+    this.onLogout,
   }) : super(key: key);
 
   @override
@@ -304,31 +369,10 @@ class AccountSettingsDialog extends StatefulWidget {
 }
 
 class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
-  bool _showPassword = false;
-  String? _currentPassword;
-
   @override
   void initState() {
     super.initState();
-    _loadCurrentPassword();
   }
-
-  Future<void> _loadCurrentPassword() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final passwordHash = prefs.getString('current_user_password');
-      setState(() {
-        _currentPassword = passwordHash != null 
-            ? '${passwordHash.substring(0, 8)}***' 
-            : 'Not available';
-      });
-    } catch (e) {
-      setState(() {
-        _currentPassword = 'Error loading password';
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -341,157 +385,195 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
       ),
       content: Container(
         width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Account Information Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Account Information',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[700],
+        height: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Account Information Section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Account Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[700],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Username
-                  Row(
-                    children: [
-                      const Icon(Icons.person, size: 20, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text('Username: ', style: TextStyle(fontWeight: FontWeight.w500)),
-                      Expanded(
-                        child: Text(
-                          widget.userId,
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            backgroundColor: Colors.grey.withOpacity(0.1),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Password (Hidden/Shown)
-                  Row(
-                    children: [
-                      const Icon(Icons.lock, size: 20, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text('Password: ', style: TextStyle(fontWeight: FontWeight.w500)),
-                      Expanded(
-                        child: Text(
-                          _showPassword ? (_currentPassword ?? 'Loading...') : '••••••••••••',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            backgroundColor: Colors.grey.withOpacity(0.1),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _showPassword ? Icons.visibility_off : Icons.visibility,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showPassword = !_showPassword;
-                          });
-                        },
-                        tooltip: _showPassword ? 'Hide password' : 'Show password',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Account Created Date
-                  if (widget.userProfile?['created_at'] != null)
+                    const SizedBox(height: 12),
+                    
+                    // Username
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                        const Icon(Icons.person, size: 20, color: Colors.grey),
                         const SizedBox(width: 8),
-                        Text('Created: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const Text('Username: ', style: TextStyle(fontWeight: FontWeight.w500)),
                         Expanded(
                           child: Text(
-                            widget.userProfile!['created_at'].toString().split(' ')[0],
-                            style: TextStyle(color: Colors.grey[600]),
+                            widget.userId,
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              backgroundColor: Colors.grey.withOpacity(0.1),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  
-                  // Last Login
-                  if (widget.userProfile?['last_login'] != null)
+                    const SizedBox(height: 8),
+                    
+                    // Password (Always hidden with dots)
                     Row(
                       children: [
-                        const Icon(Icons.access_time, size: 20, color: Colors.grey),
+                        const Icon(Icons.lock, size: 20, color: Colors.grey),
                         const SizedBox(width: 8),
-                        Text('Last Login: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const Text('Password: ', style: TextStyle(fontWeight: FontWeight.w500)),
                         Expanded(
                           child: Text(
-                            widget.userProfile!['last_login'].toString().split(' ')[0],
-                            style: TextStyle(color: Colors.grey[600]),
+                            '••••••••••••',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              backgroundColor: Colors.grey.withOpacity(0.1),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                ],
+                    const SizedBox(height: 12),
+                    
+                    // Password Reset Contact Info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.info, size: 16, color: Colors.orange),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Forgot Password?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Contact support: juntao540@gmail.com',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const Text(
+                            'Password reset is not automated yet.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Account Created Date
+                    if (widget.userProfile?['created_at'] != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          const Text('Created: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Expanded(
+                            child: Text(
+                              widget.userProfile!['created_at'].toString().split(' ')[0],
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    
+                    // Last Login
+                    if (widget.userProfile?['last_login'] != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 20, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          const Text('Last Login: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Expanded(
+                            child: Text(
+                              widget.userProfile!['last_login'].toString().split(' ')[0],
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ),
             
-            const SizedBox(height: 20),
-            
-            // Account Actions
-            Text(
-              'Account Actions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
+              const SizedBox(height: 20),
+              
+              // Account Actions
+              Text(
+                'Account Actions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            
-            ListTile(
-              leading: const Icon(Icons.lock),
-              title: const Text('Change Password'),
-              subtitle: const Text('Update your account password'),
-              onTap: () {
-                Navigator.pop(context);
-                _showChangePasswordDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.swap_horiz),
-              title: const Text('Switch Account'),
-              subtitle: const Text('Log out and sign in with different account'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSwitchAccountDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-              subtitle: const Text('Permanently delete this account and all data'),
-              onTap: () {
-                Navigator.pop(context);
-                _showDeleteAccountDialog(context);
-              },
-            ),
-          ],
+              const SizedBox(height: 12),
+              
+              ListTile(
+                leading: const Icon(Icons.lock),
+                title: const Text('Change Password'),
+                subtitle: const Text('Update your account password'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showChangePasswordDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Change Username'),
+                subtitle: const Text('Update your username'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showChangeUsernameDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.swap_horiz),
+                title: const Text('Switch Account'),
+                subtitle: const Text('Log out and sign in with different account'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showSwitchAccountDialog(context, widget.onLogout);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+                subtitle: const Text('Permanently delete this account and all data'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteAccountDialog(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -573,7 +655,90 @@ void _showChangePasswordDialog(BuildContext context) {
   );
 }
 
-void _showSwitchAccountDialog(BuildContext context) {
+void _showChangeUsernameDialog(BuildContext context) {
+  final newUsernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Change Username'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Enter your new username and current password to confirm this change.'),
+          const SizedBox(height: 16),
+          TextField(
+            controller: newUsernameController,
+            decoration: const InputDecoration(
+              labelText: 'New Username',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Current Password',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (newUsernameController.text.trim().isEmpty || passwordController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please fill in all fields')),
+              );
+              return;
+            }
+
+            try {
+              final authService = UserAuthService();
+              final result = await authService.changeUsername(
+                newUsernameController.text.trim(),
+                passwordController.text,
+              );
+
+              Navigator.pop(context);
+
+              if (result['success']) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(result['message']),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(result['message']),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } catch (e) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: $e')),
+              );
+            }
+          },
+          child: const Text('Change Username'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showSwitchAccountDialog(BuildContext context, [VoidCallback? onLogout]) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
@@ -591,12 +756,19 @@ void _showSwitchAccountDialog(BuildContext context) {
               await authService.logoutUser();
               
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Logged out. Restart app to login with different account.'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+              
+              // Call the logout callback to navigate back to login
+              if (onLogout != null) {
+                onLogout();
+              } else {
+                // Fallback message if no callback provided
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Logged out. Restart app to login with different account.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: $e')),

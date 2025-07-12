@@ -11,6 +11,8 @@ import 'models/sunk_cost.dart';
 import 'models/smart_expense.dart';
 import 'services/complete_firestore_service.dart';
 import 'services/budget_alert_service.dart';
+import 'services/user_auth_service.dart';
+import 'screens/auth_screen.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
@@ -58,13 +60,230 @@ class RNGCapitalistApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AuthWrapper(), // Use authentication wrapper instead of direct HomePage
+    );
+  }
+}
+
+// Authentication wrapper - decides whether to show login or main app
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final UserAuthService _authService = UserAuthService();
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    try {
+      // Check if user is already logged in
+      final isLoggedIn = await _authService.isLoggedIn();
+      if (isLoggedIn) {
+        // Try auto-login with saved credentials
+        final autoLoginSuccess = await _authService.autoLogin();
+        setState(() {
+          _isAuthenticated = autoLoginSuccess;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isAuthenticated = false;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Auth check error: $e');
+      setState(() {
+        _isAuthenticated = false;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _showAuthScreen() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => const AuthScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+
+    if (result == true) {
+      setState(() {
+        _isAuthenticated = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primaryContainer,
+                Theme.of(context).colorScheme.secondaryContainer,
+              ],
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.casino,
+                  size: 64,
+                  color: Colors.purple,
+                ),
+                SizedBox(height: 16),
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(
+                  'Loading RNG Capitalist...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_isAuthenticated) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primaryContainer,
+                Theme.of(context).colorScheme.secondaryContainer,
+              ],
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // App Icon
+                  Icon(
+                    Icons.casino,
+                    size: 120,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // App Title
+                  Text(
+                    'RNG Capitalist',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Subtitle
+                  Text(
+                    'D&D Edition - Roll for Purchases!',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  
+                  // Feature Highlights
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          _buildFeatureItem(Icons.smart_toy, 'AI-Powered Receipt Scanning'),
+                          _buildFeatureItem(Icons.analytics, 'Smart Budget Analytics'),
+                          _buildFeatureItem(Icons.casino, 'Dice-Based Purchase System'),
+                          _buildFeatureItem(Icons.cloud_sync, 'Cloud Sync & Backup'),
+                          _buildFeatureItem(Icons.security, 'Secure Personal Data'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Login Button
+                  ElevatedButton.icon(
+                    onPressed: _showAuthScreen,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Login / Sign Up'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      textStyle: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Privacy Notice
+                  Text(
+                    'Your data is private and secure',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // User is authenticated - show the main app
+    return HomePage(
+      onLogout: () {
+        setState(() {
+          _isAuthenticated = false;
+        });
+      },
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(fontSize: 14)),
+        ],
+      ),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  final VoidCallback? onLogout;
+
+  const HomePage({Key? key, this.onLogout}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -494,6 +713,7 @@ class _HomePageState extends State<HomePage> {
           AppSidebarDnD(
             currentPage: _currentPage,
             onNavigate: _navigateTo,
+            onLogout: widget.onLogout,
           ),
           Expanded(
             child: _buildMainContent(),
@@ -660,11 +880,11 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.analytics, color: Colors.purple),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.analytics, color: Colors.purple),
+                SizedBox(width: 8),
+                Text(
                   'Quick Stats',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),

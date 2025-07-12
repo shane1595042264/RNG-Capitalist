@@ -28,11 +28,11 @@ class _SocialSharingWidgetState extends State<SocialSharingWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.share, color: Colors.purple),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.share, color: Colors.purple),
+                SizedBox(width: 8),
+                Text(
                   'Share Budget Achievements',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -310,11 +310,11 @@ class AchievementBadges extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.emoji_events, color: Colors.amber),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.emoji_events, color: Colors.amber),
+                SizedBox(width: 8),
+                Text(
                   'Achievements',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),

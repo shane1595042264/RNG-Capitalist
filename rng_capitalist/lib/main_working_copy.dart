@@ -582,12 +582,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-            );
+            )
           }
         },
         backgroundColor: Colors.purple,
         tooltip: 'View Cloud Sync Status',
-        child: const Icon(Icons.cloud_queue, color: Colors.white),
+        child: Icon(Icons.cloud_queue, color = Colors.white),
       ),
     );
   }
@@ -945,7 +945,7 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Column(

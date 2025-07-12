@@ -582,12 +582,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-            );
+            )
           }
         },
         backgroundColor: Colors.purple,
         tooltip: 'View Cloud Sync Status',
-        child: const Icon(Icons.cloud_queue, color: Colors.white),
+        child: Icon(Icons.cloud_queue, color = Colors.white),
       ),
     );
   }
@@ -662,12 +662,12 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.casino, size: 64, color: Colors.purple),
-                const SizedBox(height: 24),
-                const Text('RNG CAPITALIST', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF9C27B0))),
-                const SizedBox(height: 16),
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                const Text('Checking authentication...'),
+                SizedBox(height: 24),
+                Text('RNG CAPITALIST', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF9C27B0))),
+                SizedBox(height: 16),
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Checking authentication...'),
               ],
             ),
           ),
@@ -699,7 +699,7 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.casino, size: 80, color: Color(0xFF9C27B0)),
+                      Icon(Icons.casino, size: 80, color: const Color(0xFF9C27B0)),
                       const SizedBox(height: 16),
                       const Text('RNG CAPITALIST', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF9C27B0))),
                       const Text('D&D Oracle & Budget Manager', style: TextStyle(fontSize: 16, color: Color(0xFF757575))),
@@ -708,7 +708,7 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Column(
@@ -766,7 +766,7 @@ class _FeatureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: Color(0xFF9C27B0), size: 20),
+        Icon(icon, color: const Color(0xFF9C27B0), size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

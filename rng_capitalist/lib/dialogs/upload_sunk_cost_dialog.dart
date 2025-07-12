@@ -35,7 +35,7 @@ class _UploadSunkCostDialogState extends State<UploadSunkCostDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: Container(
+      child: SizedBox(
         width: 800,
         height: 700,
         child: Column(
@@ -323,12 +323,12 @@ class _UploadSunkCostDialogState extends State<UploadSunkCostDialog> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('• Extracting text using ML Kit OCR'),
-                Text('• Sending to Google Gemini AI'),
-                Text('• AI analyzing document context'),
-                Text('• AI detecting amounts and expenses'),
-                Text('• AI categorizing transactions'),
-                Text('• AI generating descriptions'),
+                const Text('• Extracting text using ML Kit OCR'),
+                const Text('• Sending to Google Gemini AI'),
+                const Text('• AI analyzing document context'),
+                const Text('• AI detecting amounts and expenses'),
+                const Text('• AI categorizing transactions'),
+                const Text('• AI generating descriptions'),
               ],
             ),
           ),
@@ -380,7 +380,7 @@ class _UploadSunkCostDialogState extends State<UploadSunkCostDialog> {
         const SizedBox(height: 16),
         
         // Results List
-        Container(
+        SizedBox(
           height: 300,
           child: ListView.builder(
             itemCount: _extractedCosts.length,

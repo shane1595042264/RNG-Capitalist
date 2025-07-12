@@ -269,7 +269,7 @@ class CompleteFirestoreService {
       
       if (kDebugMode) {
         print('✅ Complete app data saved to Firestore');
-        print('   - User ID: ${_documentId}');
+        print('   - User ID: $_documentId');
         print('   - ${data.fixedCosts.length} fixed costs');
         print('   - ${data.purchaseHistory.length} purchase history items');
         print('   - ${data.modifiers.length} modifiers');
@@ -297,7 +297,7 @@ class CompleteFirestoreService {
         if (kDebugMode) {
           final data = CompleteAppData.fromJson(doc.data()!);
           print('✅ Complete app data loaded from Firestore');
-          print('   - User ID: ${_documentId}');
+          print('   - User ID: $_documentId');
           print('   - Balance: \$${data.lastBalance}');
           print('   - ${data.fixedCosts.length} fixed costs');
           print('   - ${data.purchaseHistory.length} purchase history items');
@@ -311,7 +311,7 @@ class CompleteFirestoreService {
       } else {
         // Return default data for new users
         if (kDebugMode) {
-          print('ℹ️ No data found for user ${_documentId}, creating default data');
+          print('ℹ️ No data found for user $_documentId, creating default data');
         }
         return CompleteAppData.createDefault(
           deviceName: deviceName,
@@ -393,7 +393,7 @@ class CompleteFirestoreService {
           .delete();
       
       if (kDebugMode) {
-        print('✅ All app data deleted from Firestore for user ${_documentId}');
+        print('✅ All app data deleted from Firestore for user $_documentId');
       }
     } catch (e) {
       if (kDebugMode) {

@@ -1,5 +1,4 @@
 // Test the working DocAIService
-import 'lib/services/doc_ai_service.dart';
 
 void main() {
   try {

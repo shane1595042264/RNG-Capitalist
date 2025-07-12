@@ -176,7 +176,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -417,7 +417,7 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text('You are successfully logged in with your custom account.'),
+                    const Text('You are successfully logged in with your custom account.'),
                   ],
                 ),
               ),

@@ -2,9 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'lib/firebase_options.dart';
-import 'lib/services/email_auth_service.dart';
 import 'lib/services/firestore_service.dart';
-import 'lib/components/email_login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

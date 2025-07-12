@@ -315,4 +315,88 @@ class UserAuthService {
       throw Exception('Failed to delete account: $e');
     }
   }
+
+  // Change username
+  Future<Map<String, dynamic>> changeUsername(String newUsername, String currentPassword) async {
+    try {
+      final currentUserId = await getCurrentUserId();
+      if (currentUserId == null) {
+        return {'success': false, 'message': 'Not logged in'};
+      }
+
+      // Validate new username
+      if (newUsername.length < 3) {
+        return {'success': false, 'message': 'Username must be at least 3 characters'};
+      }
+
+      // Normalize new username
+      final normalizedNewUsername = newUsername.toLowerCase();
+      
+      // Check if new username is the same as current
+      if (normalizedNewUsername == currentUserId) {
+        return {'success': false, 'message': 'New username is the same as current username'};
+      }
+
+      // Check if new username already exists
+      final existingUserDoc = await _firestore
+          .collection(_usersCollection)
+          .doc(normalizedNewUsername)
+          .get();
+
+      if (existingUserDoc.exists) {
+        return {'success': false, 'message': 'Username already taken'};
+      }
+
+      // Verify current password
+      final currentUserDoc = await _firestore
+          .collection(_usersCollection)
+          .doc(currentUserId)
+          .get();
+
+      if (!currentUserDoc.exists) {
+        return {'success': false, 'message': 'Current user not found'};
+      }
+
+      final currentUserData = currentUserDoc.data()!;
+      final hashedPassword = _hashPassword(currentPassword);
+      
+      if (currentUserData['password_hash'] != hashedPassword) {
+        return {'success': false, 'message': 'Current password is incorrect'};
+      }
+
+      // Create new user document with new username
+      await _firestore
+          .collection(_usersCollection)
+          .doc(normalizedNewUsername)
+          .set({
+        'username': newUsername, // Keep original case
+        'password_hash': currentUserData['password_hash'],
+        'created_at': currentUserData['created_at'],
+        'last_login': FieldValue.serverTimestamp(),
+        'username_changed_at': FieldValue.serverTimestamp(),
+        'previous_username': currentUserId,
+      });
+
+      // Delete old user document
+      await _firestore
+          .collection(_usersCollection)
+          .doc(currentUserId)
+          .delete();
+
+      // Update local storage with new username
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_currentUserKey, normalizedNewUsername);
+
+      if (kDebugMode) {
+        print('✅ Username changed from $currentUserId to $normalizedNewUsername');
+      }
+
+      return {'success': true, 'message': 'Username changed successfully!'};
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Change username error: $e');
+      }
+      return {'success': false, 'message': 'Failed to change username: $e'};
+    }
+  }
 }

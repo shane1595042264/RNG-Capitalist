@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';

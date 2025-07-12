@@ -519,12 +519,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-            );
+            )
           }
         },
         backgroundColor: Colors.purple,
         tooltip: 'View Cloud Sync Status',
-        child: const Icon(Icons.cloud_queue, color: Colors.white),
+        child: Icon(Icons.cloud_queue, color = Colors.white),
       ),
     );
   }

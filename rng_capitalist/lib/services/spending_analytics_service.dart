@@ -62,7 +62,7 @@ class SpendingAnalyticsService {
       
       for (final entry in categoryGroups.entries) {
         categoryTrends.putIfAbsent(entry.key, () => List.filled(months, 0))
-          ..[i] = entry.value;
+          [i] = entry.value;
       }
     }
     
@@ -128,7 +128,7 @@ class SpendingAnalyticsService {
           expense: categoryExpenses.last,
           type: AnomalyType.unusualFrequency,
           severity: 'Medium',
-          description: 'You\'ve made ${currentMonthExpenses} ${entry.value.first.category.name} purchases this month, which is unusually frequent',
+          description: 'You\'ve made $currentMonthExpenses ${entry.value.first.category.name} purchases this month, which is unusually frequent',
           expectedRange: '${monthlyFrequency.toStringAsFixed(1)} purchases per month',
         ));
       }
