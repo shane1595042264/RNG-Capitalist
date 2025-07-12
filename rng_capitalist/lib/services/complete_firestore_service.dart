@@ -5,6 +5,7 @@ import '../models/fixed_cost.dart';
 import '../models/purchase_history.dart';
 import '../models/dice_modifier.dart';
 import '../models/sunk_cost.dart';
+import '../models/smart_expense.dart';
 import 'user_auth_service.dart';
 
 // Comprehensive data model for ALL app data
@@ -20,6 +21,7 @@ class CompleteAppData {
   final List<PurchaseHistory> purchaseHistory;
   final List<DiceModifier> modifiers;
   final List<SunkCost> sunkCosts;
+  final List<SmartExpense> smartExpenses;
   
   // App state and settings
   final Map<String, dynamic> appSettings;
@@ -46,6 +48,7 @@ class CompleteAppData {
     required this.purchaseHistory,
     required this.modifiers,
     required this.sunkCosts,
+    required this.smartExpenses,
     required this.appSettings,
     required this.cooldownTimers,
     required this.modifierStates,
@@ -71,6 +74,7 @@ class CompleteAppData {
       'purchaseHistory': purchaseHistory.map((history) => history.toJson()).toList(),
       'modifiers': modifiers.map((modifier) => modifier.toJson()).toList(),
       'sunkCosts': sunkCosts.map((cost) => cost.toJson()).toList(),
+      'smartExpenses': smartExpenses.map((expense) => expense.toJson()).toList(),
       
       // App state and settings
       'appSettings': appSettings,
@@ -111,6 +115,9 @@ class CompleteAppData {
       sunkCosts: (json['sunkCosts'] as List<dynamic>?)
           ?.map((item) => SunkCost.fromJson(item as Map<String, dynamic>))
           .toList() ?? [],
+      smartExpenses: (json['smartExpenses'] as List<dynamic>?)
+          ?.map((item) => SmartExpense.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
       
       // App state and settings
       appSettings: (json['appSettings'] as Map<String, dynamic>?) ?? {},
@@ -150,6 +157,7 @@ class CompleteAppData {
       purchaseHistory: [],
       modifiers: DiceModifier.getPresetModifiers(),
       sunkCosts: [],
+      smartExpenses: [],
       appSettings: {
         'theme': 'light',
         'notifications': true,
@@ -178,6 +186,7 @@ class CompleteAppData {
     List<PurchaseHistory>? purchaseHistory,
     List<DiceModifier>? modifiers,
     List<SunkCost>? sunkCosts,
+    List<SmartExpense>? smartExpenses,
     Map<String, dynamic>? appSettings,
     Map<String, DateTime>? cooldownTimers,
     Map<String, bool>? modifierStates,
@@ -197,6 +206,7 @@ class CompleteAppData {
       purchaseHistory: purchaseHistory ?? this.purchaseHistory,
       modifiers: modifiers ?? this.modifiers,
       sunkCosts: sunkCosts ?? this.sunkCosts,
+      smartExpenses: smartExpenses ?? this.smartExpenses,
       appSettings: appSettings ?? this.appSettings,
       cooldownTimers: cooldownTimers ?? this.cooldownTimers,
       modifierStates: modifierStates ?? this.modifierStates,

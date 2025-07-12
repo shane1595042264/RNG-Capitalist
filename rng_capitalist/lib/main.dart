@@ -7,9 +7,9 @@ import 'models/fixed_cost.dart';
 import 'models/purchase_history.dart';
 import 'models/dice_modifier.dart';
 import 'models/sunk_cost.dart';
-import 'services/user_auth_service.dart';
+import 'models/smart_expense.dart';
 import 'services/complete_firestore_service.dart';
-import 'screens/auth_screen.dart';
+import 'services/budget_alert_service.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
@@ -19,6 +19,10 @@ import 'components/schedule_page.dart';
 import 'components/spinner_page.dart';
 import 'components/about_page_dnd.dart';
 import 'components/app_sidebar_dnd.dart';
+import 'components/receipt_scanner_screen.dart';
+import 'components/spending_analytics_dashboard.dart';
+import 'components/budget_alerts_widget.dart';
+import 'components/social_sharing_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,8 +77,12 @@ class _HomePageState extends State<HomePage> {
   List<PurchaseHistory> _purchaseHistory = [];
   List<DiceModifier> _modifiers = [];
   List<SunkCost> _sunkCosts = [];
+  List<SmartExpense> _smartExpenses = [];
   double _lastMonthSpend = 0.0;
   String _currentPage = 'Oracle';
+  
+  // Services for new features
+  final BudgetAlertService _budgetAlertService = BudgetAlertService();
   
   @override
   void initState() {
@@ -138,6 +146,7 @@ class _HomePageState extends State<HomePage> {
           _fixedCosts = data.fixedCosts;
           _purchaseHistory = data.purchaseHistory;
           _sunkCosts = data.sunkCosts;
+          _smartExpenses = data.smartExpenses;
           if (data.modifiers.isNotEmpty) {
             _modifiers = data.modifiers;
           }
@@ -173,6 +182,7 @@ class _HomePageState extends State<HomePage> {
         purchaseHistory: _purchaseHistory,
         modifiers: _modifiers,
         sunkCosts: _sunkCosts,
+        smartExpenses: _smartExpenses,
         appSettings: {},
         cooldownTimers: {},
         modifierStates: {},
@@ -246,6 +256,34 @@ class _HomePageState extends State<HomePage> {
       _lastMonthSpend = value;
     });
     _saveSettings();
+  }
+
+  void _onAddSmartExpense(SmartExpense expense) {
+    setState(() {
+      _smartExpenses.insert(0, expense);
+      if (_smartExpenses.length > 500) {
+        _smartExpenses.removeLast();
+      }
+    });
+    _saveSettings();
+    _budgetAlertService.checkBudgetAlerts(_smartExpenses);
+  }
+
+  void _onDeleteSmartExpense(String expenseId) {
+    setState(() {
+      _smartExpenses.removeWhere((expense) => expense.id == expenseId);
+    });
+    _saveSettings();
+  }
+
+  void _navigateToReceiptScanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ReceiptScannerScreen(
+          onExpenseAdded: _onAddSmartExpense,
+        ),
+      ),
+    );
   }
 
   void _onToggleModifier(DiceModifier modifier) {
@@ -405,6 +443,16 @@ class _HomePageState extends State<HomePage> {
         return SpinnerPage(
           sunkCosts: _sunkCosts,
         );
+      case 'Receipt Scanner':
+        return ReceiptScannerScreen(
+          onExpenseAdded: _onAddSmartExpense,
+        );
+      case 'Budget Analytics':
+        return SpendingAnalyticsDashboard(
+          expenses: _smartExpenses,
+        );
+      case 'Smart Budget':
+        return _buildSmartBudgetPage();
       case 'About':
         return const AboutPageDnD();
       default:
@@ -438,6 +486,290 @@ class _HomePageState extends State<HomePage> {
           ),
           Expanded(
             child: _buildMainContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmartBudgetPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.smart_toy, size: 32, color: Colors.purple),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Smart D&D Budget Tracker',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _navigateToReceiptScanner,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Scan Receipt'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple[700],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Budget Alerts
+          BudgetAlertsWidget(expenses: _smartExpenses),
+          const SizedBox(height: 16),
+          
+          // Recent Expenses
+          _buildRecentExpensesCard(),
+          const SizedBox(height: 16),
+          
+          // Quick Stats
+          _buildQuickStatsCard(),
+          const SizedBox(height: 16),
+          
+          // Social Sharing
+          SocialSharingWidget(expenses: _smartExpenses),
+          const SizedBox(height: 16),
+          
+          // Achievement Badges
+          AchievementBadges(expenses: _smartExpenses),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentExpensesCard() {
+    final recentExpenses = _smartExpenses.take(10).toList();
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, color: Colors.purple),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Recent D&D Expenses',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _navigateTo('Budget Analytics'),
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (recentExpenses.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.receipt_outlined, size: 48, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No expenses tracked yet',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Start by scanning a receipt or adding expenses manually',
+                        style: TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: recentExpenses.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final expense = recentExpenses[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: expense.isDnDExpense ? Colors.purple.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                      child: Text(
+                        expense.category.icon,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                    title: Text(expense.description),
+                    subtitle: Text('${expense.category.name} • ${expense.formattedDate}'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          expense.formattedAmount,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (expense.isDnDExpense)
+                          const Icon(Icons.casino, size: 16, color: Colors.purple),
+                      ],
+                    ),
+                    onTap: () => _showExpenseDetails(expense),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStatsCard() {
+    final dndExpenses = _smartExpenses.where((e) => e.isDnDExpense).toList();
+    final totalDnDSpent = dndExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    final thisMonthExpenses = _smartExpenses.where((e) {
+      final now = DateTime.now();
+      return e.date.year == now.year && e.date.month == now.month;
+    }).toList();
+    final thisMonthSpent = thisMonthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.analytics, color: Colors.purple),
+                const SizedBox(width: 8),
+                const Text(
+                  'Quick Stats',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatItem(
+                    'Total D&D Expenses',
+                    '\$${totalDnDSpent.toStringAsFixed(2)}',
+                    Icons.casino,
+                    Colors.purple,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    'This Month',
+                    '\$${thisMonthSpent.toStringAsFixed(2)}',
+                    Icons.calendar_month,
+                    Colors.blue,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    'Total Expenses',
+                    '${_smartExpenses.length}',
+                    Icons.receipt_long,
+                    Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showExpenseDetails(SmartExpense expense) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(expense.description),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Amount: ${expense.formattedAmount}'),
+            Text('Category: ${expense.category.name}'),
+            Text('Date: ${expense.formattedDate}'),
+            if (expense.notes != null) Text('Notes: ${expense.notes}'),
+            if (expense.isDnDExpense)
+              const Row(
+                children: [
+                  Icon(Icons.casino, size: 16, color: Colors.purple),
+                  SizedBox(width: 4),
+                  Text('D&D Related', style: TextStyle(color: Colors.purple)),
+                ],
+              ),
+            if (expense.receiptImagePath != null)
+              const Row(
+                children: [
+                  Icon(Icons.receipt, size: 16, color: Colors.green),
+                  SizedBox(width: 4),
+                  Text('Receipt Available', style: TextStyle(color: Colors.green)),
+                ],
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _onDeleteSmartExpense(expense.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Expense deleted')),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

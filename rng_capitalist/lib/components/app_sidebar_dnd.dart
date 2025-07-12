@@ -83,6 +83,19 @@ class AppSidebarDnD extends StatelessWidget {
           _buildNavItem(Icons.trending_down, 'Sunk Costs', currentPage == 'Sunk Costs'),
           _buildNavItem(Icons.schedule, 'Schedule', currentPage == 'Schedule'),
           _buildNavItem(Icons.casino, 'Spinner', currentPage == 'Spinner'),
+          
+          // Divider for new advanced features
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Divider(),
+          ),
+          
+          // Advanced D&D Budget Features
+          _buildSectionHeader('🎲 Smart Budget'),
+          _buildNavItem(Icons.smart_toy, 'Smart Budget', currentPage == 'Smart Budget'),
+          _buildNavItem(Icons.camera_alt, 'Receipt Scanner', currentPage == 'Receipt Scanner'),
+          _buildNavItem(Icons.analytics, 'Budget Analytics', currentPage == 'Budget Analytics'),
+          
           const SizedBox(height: 40), // Fixed space instead of Spacer
           
           // User Profile Section
@@ -214,6 +227,21 @@ class AppSidebarDnD extends StatelessWidget {
           _buildNavItem(Icons.info_outline, 'About', currentPage == 'About'),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.purple[600],
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

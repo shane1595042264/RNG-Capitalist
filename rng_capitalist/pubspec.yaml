@@ -21,6 +21,18 @@ dependencies:
   cloud_firestore: ^4.9.1
   # Unique user ID generation
   crypto: ^3.0.3
+  # Advanced features
+  image_picker: ^1.0.4
+  google_mlkit_text_recognition: ^0.9.0
+  path_provider: ^2.1.1
+  share_plus: ^7.2.1
+  fl_chart: ^0.64.0
+  image: ^4.1.3
+  # File handling and AI processing
+  file_picker: ^6.1.1
+  syncfusion_flutter_pdf: ^26.2.14
+  # Google Gemini AI for intelligent document analysis
+  google_generative_ai: ^0.4.3
 
 dev_dependencies:
   flutter_test:

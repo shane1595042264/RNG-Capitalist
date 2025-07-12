@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/sunk_cost.dart';
 import '../dialogs/add_sunk_cost_dialog.dart';
 import '../dialogs/edit_sunk_cost_dialog.dart';
+import '../dialogs/upload_sunk_cost_dialog.dart';
 
 class SunkCostsPage extends StatefulWidget {
   final List<SunkCost> sunkCosts;
@@ -100,6 +101,39 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
     }
   }
 
+  Future<void> _showUploadDialog() async {
+    final existingCategories = widget.sunkCosts
+        .map((cost) => cost.category)
+        .toSet()
+        .toList()
+      ..sort();
+
+    final result = await showDialog<List<SunkCost>>(
+      context: context,
+      builder: (context) => UploadSunkCostDialog(
+        existingCategories: existingCategories,
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      // Add each extracted sunk cost
+      for (final cost in result) {
+        widget.onAddCost(cost);
+      }
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${result.length} sunk cost${result.length > 1 ? 's' : ''} from document'),
+            backgroundColor: Colors.green[700],
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _confirmDelete(SunkCost cost) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -164,6 +198,20 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
                       ),
                     ),
                     const Spacer(),
+                    OutlinedButton.icon(
+                      onPressed: _showUploadDialog,
+                      icon: const Icon(Icons.cloud_upload),
+                      label: const Text('AI Upload'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.purple[700],
+                        side: BorderSide(color: Colors.purple[700]!),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     ElevatedButton.icon(
                       onPressed: _showAddCostDialog,
                       icon: const Icon(Icons.add),
