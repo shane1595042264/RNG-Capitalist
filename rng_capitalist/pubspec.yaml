@@ -1,6 +1,6 @@
 name: rng_capitalist
 description: AI-Powered Sunk Cost Tracker - Let intelligent chaos manage your wallet with Google Gemini AI
-version: 2.0.0+2
+version: 2.2.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -36,6 +36,8 @@ dependencies:
   # Environment variables support
   flutter_dotenv: ^5.1.0
   url_launcher: ^6.2.2
+  # Microsoft Store packaging
+  msix: ^3.16.8
 
 dev_dependencies:
   flutter_test:
@@ -47,3 +49,22 @@ flutter:
   assets:
     - assets/sounds/
     - .env
+
+# MSIX configuration for Microsoft Store
+msix_config:
+  display_name: "RNG Capitalist"
+  publisher_display_name: "A-PLUS"
+  identity_name: "A-PLUS.RNGCapitalist"
+  package_family_name: "A-PLUS.RNGCapitalist_kq2gpd5ks5v86"
+  msix_version: "2.2.0.0"
+  description: "AI-Powered D&D Budget Tracker with smart analytics and cloud sync. Track your tabletop gaming expenses with intelligent categorization and real-time collaboration."
+  publisher: "CN=25D94FEB-B89E-4816-BB32-35995EAF1AFB"
+  logo_path: "assets/logo/app_icon.png"
+  start_menu_icon_path: "assets/logo/app_icon.png"
+  tile_icon_path: "assets/logo/app_icon.png"
+  vs_generated_images_folder_path: "assets/logo/"
+  icons_background_color: "#663399"
+  architecture: "x64"
+  languages: "en-us"
+  capabilities: "internetClient,internetClientServer,privateNetworkClientServer"
+  store: true

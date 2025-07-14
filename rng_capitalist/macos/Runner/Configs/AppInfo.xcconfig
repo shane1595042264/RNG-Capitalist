@@ -8,7 +8,7 @@
 PRODUCT_NAME = rng_capitalist
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.rngCapitalist
+PRODUCT_BUNDLE_IDENTIFIER = com.aplus.rngcapitalist
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

@@ -5,7 +5,6 @@ import '../models/fixed_cost.dart';
 import '../models/purchase_history.dart';
 import '../models/dice_modifier.dart';
 import '../models/sunk_cost.dart';
-import 'user_auth_service.dart';
 
 // Comprehensive data model for ALL app data
 class CompleteAppData {

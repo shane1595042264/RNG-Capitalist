@@ -383,7 +383,7 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
           const Text('Account Settings'),
         ],
       ),
-      content: Container(
+      content: SizedBox(
         width: 400,
         height: 500,
         child: SingleChildScrollView(
@@ -458,14 +458,14 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: Colors.orange.withOpacity(0.3)),
                       ),
-                      child: Column(
+                      child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.info, size: 16, color: Colors.orange),
-                              const SizedBox(width: 6),
-                              const Text(
+                              Icon(Icons.info, size: 16, color: Colors.orange),
+                              SizedBox(width: 6),
+                              Text(
                                 'Forgot Password?',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
@@ -474,12 +474,12 @@ class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          const Text(
+                          SizedBox(height: 6),
+                          Text(
                             'Contact support: juntao540@gmail.com',
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
-                          const Text(
+                          Text(
                             'Password reset is not automated yet.',
                             style: TextStyle(fontSize: 11, color: Colors.grey),
                           ),

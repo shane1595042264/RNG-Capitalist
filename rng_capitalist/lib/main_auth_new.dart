@@ -9,15 +9,12 @@ import 'models/sunk_cost.dart';
 import 'services/complete_firestore_service.dart';
 import 'services/user_auth_service.dart';
 import 'screens/auth_screen.dart';
-import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
 import 'components/fixed_costs_page.dart';
 import 'components/modifiers_page.dart';
 import 'components/sunk_costs_page.dart';
 import 'components/schedule_page.dart';
 import 'components/spinner_page.dart';
-import 'components/about_page_dnd.dart';
-import 'components/app_sidebar_dnd.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

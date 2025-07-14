@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+
+  <Identity Name="A-PLUS.RNGCapitalist"
+            Publisher="CN=A-PLUS"
+            Version="2.2.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="b5a3fd6c-8c6a-4c6e-a1c7-9b8a2d4e5f6g" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>RNG Capitalist - D&D Budget Tracker</DisplayName>
+    <PublisherDisplayName>A-PLUS</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>AI-Powered D&D Budget Tracker with smart analytics and cloud sync. Track your tabletop gaming expenses with intelligent categorization and real-time collaboration.</Description>
+    <PackageFamilyName>A-PLUS.RNGCapitalist_8wekyb3d8bbwe</PackageFamilyName>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22000.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22000.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+                 Executable="rng_capitalist.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="RNG Capitalist"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png"
+                          Description="AI-Powered D&D Budget Tracker"
+                          BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="rng-capitalist">
+            <uap:DisplayName>RNG Capitalist Protocol</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+  </Capabilities>
+</Package>

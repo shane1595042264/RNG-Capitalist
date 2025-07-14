@@ -1,0 +1,18 @@
+display_name: RNG Capitalist - D&D Budget Tracker
+publisher_display_name: A-PLUS
+identity_name: A-PLUS.RNGCapitalist
+msix_version: 2.2.0.0
+description: AI-Powered D&D Budget Tracker with smart analytics and cloud sync. Track your tabletop gaming expenses with intelligent categorization and real-time collaboration.
+publisher: CN=A-PLUS
+logo_path: assets/logo/app_icon.png
+start_menu_icon_path: assets/logo/app_icon.png
+tile_icon_path: assets/logo/app_icon.png
+vs_generated_images_folder_path: assets/logo/
+icons_background_color: '#663399'
+architecture: x64
+languages: en-us
+capabilities: internetClient,internetClientServer,privateNetworkClientServer
+store: true
+certificate_path: NONE
+certificate_password: NONE
+signtool_options: /fd SHA256
