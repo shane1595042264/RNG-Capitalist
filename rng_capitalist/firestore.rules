@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow access to existing rng_users collection (your current data structure)
+    match /rng_users/{userId} {
+      allow read, write: if true; // Open access for existing users
+      
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    // Allow access to user_data collection (used by TemplateService)
+    match /user_data/{userId} {
+      allow read, write: if true; // Open access for templates
+      
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    // Allow access to users collection (if used)
+    match /users/{userId} {
+      allow read, write: if true;
+      
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    // Allow access to complete_user_data collection (if used)
+    match /complete_user_data/{userId} {
+      allow read, write: if true;
+      
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+    
+    // Allow access to demo_data collection (if used)
+    match /demo_data/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Allow access to test collection (if used)
+    match /test/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Catch-all for any other collections your app might use
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

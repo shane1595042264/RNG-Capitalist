@@ -1,5 +1,6 @@
 // lib/models/sunk_cost.dart
 import 'dart:math';
+import 'sunk_cost_entry.dart';
 
 String _generateId() {
   final random = Random();
@@ -13,6 +14,7 @@ class SunkCost {
   final double amount;
   final String category;
   final bool isActive;
+  final List<SunkCostEntry> entries;
 
   SunkCost({
     String? id,
@@ -20,7 +22,23 @@ class SunkCost {
     required this.amount,
     required this.category,
     this.isActive = true,
-  }) : id = id ?? _generateId();
+    List<SunkCostEntry>? entries,
+  }) : id = id ?? _generateId(),
+        entries = entries ?? [];
+
+  /// Total amount including all entries
+  double get totalAmount {
+    final entriesTotal = entries.fold(0.0, (sum, entry) => sum + entry.amount);
+    return amount + entriesTotal;
+  }
+
+  /// Get the base amount (original sunk cost amount)
+  double get baseAmount => amount;
+
+  /// Get the total amount from entries only
+  double get entriesAmount {
+    return entries.fold(0.0, (sum, entry) => sum + entry.amount);
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -29,6 +47,7 @@ class SunkCost {
       'amount': amount,
       'category': category,
       'isActive': isActive,
+      'entries': entries.map((entry) => entry.toJson()).toList(),
     };
   }
 
@@ -39,6 +58,9 @@ class SunkCost {
       amount: json['amount'].toDouble(),
       category: json['category'],
       isActive: json['isActive'] ?? true,
+      entries: (json['entries'] as List<dynamic>?)
+          ?.map((entryJson) => SunkCostEntry.fromJson(entryJson))
+          .toList() ?? [],
     );
   }
 
@@ -47,6 +69,7 @@ class SunkCost {
     double? amount,
     String? category,
     bool? isActive,
+    List<SunkCostEntry>? entries,
   }) {
     return SunkCost(
       id: id,
@@ -54,7 +77,29 @@ class SunkCost {
       amount: amount ?? this.amount,
       category: category ?? this.category,
       isActive: isActive ?? this.isActive,
+      entries: entries ?? List.from(this.entries),
     );
+  }
+
+  /// Add a new entry to this sunk cost
+  SunkCost addEntry(SunkCostEntry entry) {
+    final newEntries = List<SunkCostEntry>.from(entries);
+    newEntries.add(entry);
+    return copyWith(entries: newEntries);
+  }
+
+  /// Remove an entry from this sunk cost
+  SunkCost removeEntry(String entryId) {
+    final newEntries = entries.where((entry) => entry.id != entryId).toList();
+    return copyWith(entries: newEntries);
+  }
+
+  /// Update an entry in this sunk cost
+  SunkCost updateEntry(SunkCostEntry updatedEntry) {
+    final newEntries = entries.map((entry) {
+      return entry.id == updatedEntry.id ? updatedEntry : entry;
+    }).toList();
+    return copyWith(entries: newEntries);
   }
 
   @override

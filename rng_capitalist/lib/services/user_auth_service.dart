@@ -99,8 +99,36 @@ class UserAuthService {
       final userData = userDoc.data()!;
       final hashedPassword = _hashPassword(password);
       
-      if (userData['password_hash'] != hashedPassword) {
-        return {'success': false, 'message': 'Incorrect password'};
+      // Handle legacy users without password_hash (migrate them)
+      if (!userData.containsKey('password_hash')) {
+        if (kDebugMode) {
+          print('🔄 Migrating legacy user: $username');
+        }
+        
+        // For legacy user 'douvleplus', allow any password and set it up
+        if (username.toLowerCase() == 'douvleplus') {
+          // Set up authentication for legacy user
+          await _firestore
+              .collection(_usersCollection)
+              .doc(username.toLowerCase())
+              .update({
+            'username': username,
+            'password_hash': hashedPassword,
+            'created_at': userData['created_at'] ?? FieldValue.serverTimestamp(),
+            'auth_migrated_at': FieldValue.serverTimestamp(),
+          });
+          
+          if (kDebugMode) {
+            print('✅ Legacy user migrated successfully');
+          }
+        } else {
+          return {'success': false, 'message': 'Legacy user migration not available for this username'};
+        }
+      } else {
+        // Normal password verification for users with existing auth
+        if (userData['password_hash'] != hashedPassword) {
+          return {'success': false, 'message': 'Incorrect password'};
+        }
       }
 
       // Update last login
@@ -170,6 +198,14 @@ class UserAuthService {
       }
 
       final userData = userDoc.data()!;
+      
+      // Handle legacy users without password_hash (they need to login first to set up auth)
+      if (!userData.containsKey('password_hash')) {
+        // Legacy user detected, require fresh login to migrate
+        await logoutUser();
+        return false;
+      }
+      
       if (userData['password_hash'] != passwordHash) {
         // Password changed elsewhere, require re-login
         await logoutUser();

@@ -1,9 +1,14 @@
 // lib/components/sunk_costs_page.dart
 import 'package:flutter/material.dart';
 import '../models/sunk_cost.dart';
+import '../models/sunk_cost_entry.dart';
+import '../models/entry_template.dart';
+import '../services/template_service.dart';
 import '../dialogs/add_sunk_cost_dialog.dart';
 import '../dialogs/edit_sunk_cost_dialog.dart';
 import '../dialogs/upload_sunk_cost_dialog.dart';
+import '../dialogs/add_sunk_cost_entry_dialog.dart';
+import '../dialogs/sunk_cost_entries_dialog.dart';
 
 class SunkCostsPage extends StatefulWidget {
   final List<SunkCost> sunkCosts;
@@ -28,6 +33,30 @@ class SunkCostsPage extends StatefulWidget {
 class _SunkCostsPageState extends State<SunkCostsPage> {
   String _selectedCategory = 'All';
   String _searchQuery = '';
+  late List<EntryTemplate> _templates;
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTemplates();
+  }
+
+  void _loadTemplates() async {
+    try {
+      // In a real app, you'd get this from your auth service
+      _currentUserId = 'douvleplus'; // Replace with actual user ID
+      final templates = await TemplateService.loadUserTemplates(_currentUserId!);
+      setState(() {
+        _templates = templates;
+      });
+    } catch (e) {
+      // Fallback to default templates if Firebase fails
+      setState(() {
+        _templates = EntryTemplate.getDefaultTemplates();
+      });
+    }
+  }
 
   List<String> get _categories {
     final categories = widget.sunkCosts
@@ -156,6 +185,67 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
 
     if (confirmed == true) {
       widget.onDeleteCost(cost.id);
+    }
+  }
+
+  Future<void> _showAddEntryDialog(SunkCost cost) async {
+    final result = await showDialog<SunkCostEntry>(
+      context: context,
+      builder: (context) => AddSunkCostEntryDialog(
+        sunkCostName: cost.name,
+        suggestedCategory: cost.category,
+        templates: _templates,
+        onTemplatesUpdated: (updatedTemplates) {
+          setState(() {
+            _templates = updatedTemplates;
+          });
+        },
+      ),
+    );
+
+    if (result != null) {
+      final updatedCost = cost.copyWith();
+      updatedCost.addEntry(result);
+      widget.onEditCost(updatedCost);
+    }
+  }
+
+  Future<void> _showSubtractEntryDialog(SunkCost cost) async {
+    final result = await showDialog<SunkCostEntry>(
+      context: context,
+      builder: (context) => AddSunkCostEntryDialog(
+        sunkCostName: cost.name,
+        suggestedCategory: cost.category,
+        templates: _templates,
+        onTemplatesUpdated: (updatedTemplates) {
+          setState(() {
+            _templates = updatedTemplates;
+          });
+        },
+        initialMode: false, // Start in subtract mode
+      ),
+    );
+
+    if (result != null) {
+      final updatedCost = cost.copyWith();
+      updatedCost.addEntry(result);
+      widget.onEditCost(updatedCost);
+    }
+  }
+
+  Future<void> _showEntriesDialog(SunkCost cost) async {
+    final result = await showDialog<SunkCost>(
+      context: context,
+      builder: (context) => SunkCostEntriesDialog(
+        sunkCost: cost,
+        onSunkCostUpdated: (updatedCost) {
+          Navigator.of(context).pop(updatedCost);
+        },
+      ),
+    );
+
+    if (result != null) {
+      widget.onEditCost(result);
     }
   }
 
@@ -439,6 +529,27 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
                                   fontSize: 12,
                                 ),
                               ),
+                              if (cost.entries.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.receipt,
+                                      size: 14,
+                                      color: Colors.blue[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${cost.entries.length} entries • \$${cost.entriesAmount.toStringAsFixed(2)} additional',
+                                      style: TextStyle(
+                                        color: Colors.blue[600],
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                               if (cost.isActive) ...[
                                 const SizedBox(height: 4),
                                 Text(
@@ -455,17 +566,66 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                '\$${cost.amount.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: cost.isActive 
-                                      ? Colors.red[700] 
-                                      : Colors.grey[600],
-                                ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '\$${cost.totalAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: cost.isActive 
+                                          ? Colors.red[700] 
+                                          : Colors.grey[600],
+                                    ),
+                                  ),
+                                  if (cost.entries.isNotEmpty)
+                                    Text(
+                                      'Base: \$${cost.baseAmount.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                ],
                               ),
                               const SizedBox(width: 8),
+                              // Plus button to add entry
+                              IconButton(
+                                onPressed: () => _showAddEntryDialog(cost),
+                                icon: Icon(
+                                  Icons.add_circle,
+                                  color: Colors.green[600],
+                                  size: 24,
+                                ),
+                                tooltip: 'Add entry',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              // Minus button to subtract entry
+                              IconButton(
+                                onPressed: () => _showSubtractEntryDialog(cost),
+                                icon: Icon(
+                                  Icons.remove_circle,
+                                  color: Colors.red[600],
+                                  size: 24,
+                                ),
+                                tooltip: 'Subtract entry',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              // Entries button (if has entries)
+                              if (cost.entries.isNotEmpty)
+                                IconButton(
+                                  onPressed: () => _showEntriesDialog(cost),
+                                  icon: Icon(
+                                    Icons.receipt_long,
+                                    color: Colors.blue[600],
+                                    size: 20,
+                                  ),
+                                  tooltip: 'View entries',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              const SizedBox(width: 4),
                               Switch(
                                 value: cost.isActive,
                                 onChanged: (value) {

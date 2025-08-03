@@ -611,13 +611,7 @@ class _HomePageState extends State<HomePage> {
   void _onToggleSunkCost(SunkCost cost, bool isActive) {
     setState(() {
       final index = _sunkCosts.indexOf(cost);
-      _sunkCosts[index] = SunkCost(
-        id: cost.id,
-        name: cost.name,
-        amount: cost.amount,
-        category: cost.category,
-        isActive: isActive,
-      );
+      _sunkCosts[index] = cost.copyWith(isActive: isActive);
     });
     _saveSettings();
   }
