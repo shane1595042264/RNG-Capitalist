@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class UserAuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static const String _usersCollection = 'rng_users';
+  static const String _usersCollection = 'complete_user_data'; // Use same collection as main data
   static const String _currentUserKey = 'current_user_id';
   static const String _currentPasswordKey = 'current_user_password';
 

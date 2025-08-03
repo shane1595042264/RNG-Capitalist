@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/user_auth_service.dart';
+import '../utils/debug_database_dialog.dart';
 
 class AppSidebarDnD extends StatelessWidget {
   final String currentPage;
@@ -231,6 +232,30 @@ class AppSidebarDnD extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
               ),
             ),
+          ),
+          
+          // Debug Database Button (only for douvleplus)
+          FutureBuilder<String?>(
+            future: UserAuthService().getCurrentUserId(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data == 'douvleplus') {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: TextButton.icon(
+                    onPressed: () {
+                      showDatabaseQueryDialog(context);
+                    },
+                    icon: const Icon(Icons.bug_report, size: 16),
+                    label: const Text('Debug Database'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.orange[600],
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                );
+              }
+              return SizedBox.shrink(); // Hide for everyone else
+            },
           ),
           
           _buildNavItem(Icons.info_outline, 'About', currentPage == 'About'),

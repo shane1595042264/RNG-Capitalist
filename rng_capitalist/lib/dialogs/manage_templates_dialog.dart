@@ -30,6 +30,8 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
   void initState() {
     super.initState();
     _templates = List.from(widget.templates);
+    print('🔧 DEBUG: ManageTemplatesDialog initState - received ${widget.templates.length} templates');
+    print('🔧 DEBUG: Template names: ${widget.templates.map((t) => t.name).toList()}');
   }
 
   @override
@@ -41,7 +43,13 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
   }
 
   void _addTemplate() {
+    print('🔧 DEBUG: _addTemplate called');
+    print('🔧 DEBUG: Current _templates count: ${_templates.length}');
+    print('🔧 DEBUG: Name field: "${_nameController.text.trim()}"');
+    print('🔧 DEBUG: Description field: "${_descriptionController.text.trim()}"');
+    
     if (_nameController.text.trim().isEmpty || _descriptionController.text.trim().isEmpty) {
+      print('🔧 DEBUG: Validation failed - empty fields');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill in both name and description'),
@@ -56,6 +64,7 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
     if (amountText.isNotEmpty) {
       amount = double.tryParse(amountText);
       if (amount == null || amount <= 0) {
+        print('🔧 DEBUG: Validation failed - invalid amount');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please enter a valid amount or leave blank'),
@@ -66,12 +75,17 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
       }
     }
 
+    print('🔧 DEBUG: Validation passed, creating template...');
+
     final newTemplate = EntryTemplate(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
       amount: amount,
       isAddition: _isAddition,
     );
+
+    print('🔧 DEBUG: Created new template: ${newTemplate.name}');
+    print('🔧 DEBUG: New template JSON: ${newTemplate.toJson()}');
 
     setState(() {
       _templates.add(newTemplate);
@@ -81,16 +95,29 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
       _isAddition = true; // Reset to default
     });
 
+    print('🔧 DEBUG: After adding, _templates count: ${_templates.length}');
+    print('🔧 DEBUG: Template names: ${_templates.map((t) => t.name).toList()}');
+
     _saveTemplates();
   }
 
   Future<void> _saveTemplates() async {
+    print('🔧 DEBUG: _saveTemplates called with ${_templates.length} templates');
+    print('🔧 DEBUG: Template names before save: ${_templates.map((t) => t.name).toList()}');
+    
     // Always notify parent of updates
     widget.onTemplatesUpdated(_templates);
     
     if (widget.userId != null) {
       try {
         await TemplateService.saveUserTemplates(widget.userId!, _templates);
+        
+        // Don't reload from database - trust our local state since we just saved it
+        // This prevents newly added templates from being lost
+        
+        // Notify parent with current templates
+        widget.onTemplatesUpdated(_templates);
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -115,16 +142,6 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
   }
 
   void _editTemplate(EntryTemplate template) {
-    if (template.isDefault) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Default templates cannot be edited'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     _nameController.text = template.name;
     _descriptionController.text = template.description;
     _amountController.text = template.amount?.toStringAsFixed(2) ?? '';
@@ -300,16 +317,6 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
   }
 
   void _deleteTemplate(EntryTemplate template) {
-    if (template.isDefault) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Default templates cannot be deleted'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -336,8 +343,10 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
     );
   }
 
-  void _saveAndClose() {
-    widget.onTemplatesUpdated(_templates);
+  void _saveAndClose() async {
+    // Save to database first
+    await _saveTemplates();
+    // Then close dialog
     Navigator.of(context).pop();
   }
 
@@ -379,6 +388,25 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
                     ),
                   ),
                   const Spacer(),
+                  // Quick clear button for debugging
+                  if (widget.userId == 'douvleplus') ...[
+                    TextButton(
+                      onPressed: () async {
+                        setState(() {
+                          _templates.clear();
+                        });
+                        await _saveTemplates();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('All templates cleared!'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      },
+                      child: const Text('Clear All'),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
@@ -526,7 +554,10 @@ class _ManageTemplatesDialogState extends State<ManageTemplatesDialog> {
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
-                        onPressed: _addTemplate,
+                        onPressed: () {
+                          print('🔧 DEBUG: GREEN + BUTTON PRESSED!');
+                          _addTemplate();
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green[700],
                           foregroundColor: Colors.white,
