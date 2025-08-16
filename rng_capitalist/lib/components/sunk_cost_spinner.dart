@@ -27,6 +27,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
   
   List<SpinnerSegment> _segments = [];
   double _totalValue = 0.0;
+  double _currentRotation = 0.0; // Track current rotation to avoid reset
 
   @override
   void initState() {
@@ -71,7 +72,8 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
       return;
     }
 
-    double currentAngle = 0.0;
+    // Start from the top (12 o'clock position) to match the pointer
+    double currentAngle = -math.pi / 2;
     _segments = [];
     
     final colors = [
@@ -116,31 +118,68 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
       _result = null;
     });
 
+    // Reset controller for new spin
+    _rotationController.reset();
+
     // Generate random final rotation (3-7 full rotations plus random angle)
     final random = math.Random();
     final baseRotations = 3 + random.nextDouble() * 4; // 3-7 rotations
-    final finalAngle = baseRotations * 2 * math.pi;
+    final additionalRotation = baseRotations * 2 * math.pi;
+    final finalRotation = _currentRotation + additionalRotation;
     
     _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: finalAngle,
+      begin: _currentRotation,
+      end: finalRotation,
     ).animate(CurvedAnimation(
       parent: _rotationController,
       curve: Curves.easeOut,
     ));
 
+    // Add listener to calculate result during animation
+    void animationListener() {
+      if (_rotationController.isCompleted) {
+        _rotationController.removeListener(animationListener);
+        _calculateResultFromCurrentPosition();
+      }
+    }
+    _rotationController.addListener(animationListener);
+
     await _rotationController.forward();
     
-    // Calculate result based on final position
-    final normalizedAngle = (finalAngle % (2 * math.pi));
-    final resultAngle = (2 * math.pi) - normalizedAngle; // Reverse because spinner rotates
+    // Update current rotation to final position
+    _currentRotation = finalRotation;
+  }
+
+  void _calculateResultFromCurrentPosition() {
+    // Get the current visual rotation
+    final currentRotation = _rotationAnimation?.value ?? _currentRotation;
+    
+    // The pointer is fixed at the top, so we need to find which segment
+    // is currently under the pointer after the wheel has rotated
+    // Since segments start at -π/2 (top) and wheel rotates clockwise,
+    // we need to add the rotation to find the current segment position
+    final adjustedRotation = currentRotation + math.pi / 2; // Adjust for starting at top
+    final normalizedRotation = adjustedRotation % (2 * math.pi);
     
     SunkCost? selectedCost;
     for (var segment in _segments) {
-      if (resultAngle >= segment.startAngle && 
-          resultAngle < segment.startAngle + segment.sweepAngle) {
-        selectedCost = segment.sunkCost;
-        break;
+      // Check if the pointer (at 0 radians after adjustment) falls within this segment
+      final segmentStartAdjusted = (segment.startAngle + math.pi / 2) % (2 * math.pi);
+      final segmentEndAdjusted = (segment.startAngle + segment.sweepAngle + math.pi / 2) % (2 * math.pi);
+      
+      // Handle wrap-around case
+      if (segmentStartAdjusted <= segmentEndAdjusted) {
+        // Normal case - segment doesn't wrap around
+        if (normalizedRotation >= segmentStartAdjusted && normalizedRotation < segmentEndAdjusted) {
+          selectedCost = segment.sunkCost;
+          break;
+        }
+      } else {
+        // Segment wraps around 0
+        if (normalizedRotation >= segmentStartAdjusted || normalizedRotation < segmentEndAdjusted) {
+          selectedCost = segment.sunkCost;
+          break;
+        }
       }
     }
     
@@ -154,8 +193,6 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
     if (selectedCost != null) {
       widget.onSpinResult(selectedCost);
     }
-    
-    _rotationController.reset();
   }
 
   @override
@@ -206,7 +243,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
                     animation: _rotationController,
                     builder: (context, child) {
                       return Transform.rotate(
-                        angle: _rotationAnimation?.value ?? 0.0,
+                        angle: _rotationAnimation?.value ?? _currentRotation,
                         child: CustomPaint(
                           size: const Size(300, 300),
                           painter: SpinnerPainter(
