@@ -6,6 +6,7 @@ import '../models/purchase_history.dart';
 import '../models/dice_modifier.dart';
 import '../models/sunk_cost.dart';
 import '../models/smart_expense.dart';
+import '../models/entry_template.dart';
 import 'user_auth_service.dart';
 
 // Comprehensive data model for ALL app data
@@ -22,6 +23,7 @@ class CompleteAppData {
   final List<DiceModifier> modifiers;
   final List<SunkCost> sunkCosts;
   final List<SmartExpense> smartExpenses;
+  final List<EntryTemplate> templates;
   
   // App state and settings
   final Map<String, dynamic> appSettings;
@@ -49,6 +51,7 @@ class CompleteAppData {
     required this.modifiers,
     required this.sunkCosts,
     required this.smartExpenses,
+    required this.templates,
     required this.appSettings,
     required this.cooldownTimers,
     required this.modifierStates,
@@ -75,6 +78,7 @@ class CompleteAppData {
       'modifiers': modifiers.map((modifier) => modifier.toJson()).toList(),
       'sunkCosts': sunkCosts.map((cost) => cost.toJson()).toList(),
       'smartExpenses': smartExpenses.map((expense) => expense.toJson()).toList(),
+      'quick_entry_templates': templates.map((template) => template.toJson()).toList(),
       
       // App state and settings
       'appSettings': appSettings,
@@ -118,6 +122,9 @@ class CompleteAppData {
       smartExpenses: (json['smartExpenses'] as List<dynamic>?)
           ?.map((item) => SmartExpense.fromJson(item as Map<String, dynamic>))
           .toList() ?? [],
+      templates: (json['quick_entry_templates'] as List<dynamic>?)
+          ?.map((item) => EntryTemplate.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
       
       // App state and settings
       appSettings: (json['appSettings'] as Map<String, dynamic>?) ?? {},
@@ -158,6 +165,7 @@ class CompleteAppData {
       modifiers: DiceModifier.getPresetModifiers(),
       sunkCosts: [],
       smartExpenses: [],
+      templates: [],
       appSettings: {
         'theme': 'light',
         'notifications': true,
@@ -187,6 +195,7 @@ class CompleteAppData {
     List<DiceModifier>? modifiers,
     List<SunkCost>? sunkCosts,
     List<SmartExpense>? smartExpenses,
+    List<EntryTemplate>? templates,
     Map<String, dynamic>? appSettings,
     Map<String, DateTime>? cooldownTimers,
     Map<String, bool>? modifierStates,
@@ -207,6 +216,7 @@ class CompleteAppData {
       modifiers: modifiers ?? this.modifiers,
       sunkCosts: sunkCosts ?? this.sunkCosts,
       smartExpenses: smartExpenses ?? this.smartExpenses,
+      templates: templates ?? this.templates,
       appSettings: appSettings ?? this.appSettings,
       cooldownTimers: cooldownTimers ?? this.cooldownTimers,
       modifierStates: modifierStates ?? this.modifierStates,

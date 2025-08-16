@@ -9,9 +9,11 @@ import 'models/purchase_history.dart';
 import 'models/dice_modifier.dart';
 import 'models/sunk_cost.dart';
 import 'models/smart_expense.dart';
+import 'models/entry_template.dart';
 import 'services/complete_firestore_service.dart';
 import 'services/budget_alert_service.dart';
 import 'services/user_auth_service.dart';
+import 'services/template_service.dart';
 import 'screens/auth_screen.dart';
 import 'components/oracle_page_dnd.dart';
 import 'components/history_page.dart';
@@ -403,6 +405,10 @@ class _HomePageState extends State<HomePage> {
       final totalFixedCosts = _fixedCosts.where((c) => c.isActive).fold(0.0, (sum, cost) => sum + cost.amount);
       final remainingBudget = availableBudget - totalFixedCosts;
       
+      // Load current templates from the template service
+      final userId = await UserAuthService().getCurrentUserId();
+      final templates = userId != null ? await TemplateService.loadUserTemplates(userId) : <EntryTemplate>[];
+      
       final data = CompleteAppData(
         lastBalance: _balanceController.text,
         lastMonthSpend: _lastMonthSpend,
@@ -413,6 +419,7 @@ class _HomePageState extends State<HomePage> {
         modifiers: _modifiers,
         sunkCosts: _sunkCosts,
         smartExpenses: _smartExpenses,
+        templates: templates,
         appSettings: {},
         cooldownTimers: {},
         modifierStates: {},
