@@ -64,7 +64,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
 
   void _calculateSegments() {
     final activeCosts = widget.sunkCosts.where((cost) => cost.isActive).toList();
-    _totalValue = activeCosts.fold(0.0, (sum, cost) => sum + cost.amount);
+    _totalValue = activeCosts.fold(0.0, (sum, cost) => sum + cost.totalAmount);
     
     if (_totalValue == 0) {
       _segments = [];
@@ -91,7 +91,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
 
     for (int i = 0; i < activeCosts.length; i++) {
       final cost = activeCosts[i];
-      final percentage = cost.amount / _totalValue;
+      final percentage = cost.totalAmount / _totalValue;
       final sweepAngle = percentage * 2 * math.pi;
       
       _segments.add(SpinnerSegment(
@@ -321,7 +321,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            '${segment.sunkCost.name} (\$${segment.sunkCost.amount.toStringAsFixed(2)}) - ${segment.percentage.toStringAsFixed(1)}%',
+                            '${segment.sunkCost.name} (\$${segment.sunkCost.totalAmount.toStringAsFixed(2)}) - ${segment.percentage.toStringAsFixed(1)}%',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[700],
@@ -374,7 +374,7 @@ class _SunkCostSpinnerState extends State<SunkCostSpinner>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Category: ${_result!.category} • \$${_result!.amount.toStringAsFixed(2)}',
+                  'Category: ${_result!.category} • \$${_result!.totalAmount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.9),

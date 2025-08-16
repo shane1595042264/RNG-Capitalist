@@ -595,7 +595,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       final index = _sunkCosts.indexWhere((c) => c.id == updatedCost.id);
       if (index != -1) {
+        final oldCost = _sunkCosts[index];
         _sunkCosts[index] = updatedCost;
+        print('🔄 DEBUG SAVE: Updated ${updatedCost.name} - Old total: ${oldCost.totalAmount}, New total: ${updatedCost.totalAmount}, Entries: ${updatedCost.entries.length}');
       }
     });
     _saveSettings();

@@ -80,13 +80,13 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
   double get _totalSunkCostValue {
     return widget.sunkCosts
         .where((cost) => cost.isActive)
-        .fold(0.0, (sum, cost) => sum + cost.amount);
+        .fold(0.0, (sum, cost) => sum + cost.totalAmount);
   }
 
   Map<String, double> get _categoryTotals {
     final totals = <String, double>{};
     for (var cost in widget.sunkCosts.where((c) => c.isActive)) {
-      totals[cost.category] = (totals[cost.category] ?? 0) + cost.amount;
+      totals[cost.category] = (totals[cost.category] ?? 0) + cost.totalAmount;
     }
     return totals;
   }
@@ -204,8 +204,8 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
     );
 
     if (result != null) {
-      final updatedCost = cost.copyWith();
-      updatedCost.addEntry(result);
+      final updatedCost = cost.addEntry(result);
+      print('💰 DEBUG ADD: Original amount: ${cost.amount}, Entry amount: ${result.amount}, Total will be: ${updatedCost.totalAmount}');
       widget.onEditCost(updatedCost);
     }
   }
@@ -227,8 +227,8 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
     );
 
     if (result != null) {
-      final updatedCost = cost.copyWith();
-      updatedCost.addEntry(result);
+      final updatedCost = cost.addEntry(result);
+      print('💰 DEBUG SUBTRACT: Original amount: ${cost.amount}, Entry amount: ${result.amount}, Total will be: ${updatedCost.totalAmount}');
       widget.onEditCost(updatedCost);
     }
   }
@@ -490,7 +490,7 @@ class _SunkCostsPageState extends State<SunkCostsPage> {
                     itemBuilder: (context, index) {
                       final cost = _filteredCosts[index];
                       final percentage = _totalSunkCostValue > 0 
-                          ? (cost.amount / _totalSunkCostValue * 100)
+                          ? (cost.totalAmount / _totalSunkCostValue * 100)
                           : 0.0;
                       
                       return Card(

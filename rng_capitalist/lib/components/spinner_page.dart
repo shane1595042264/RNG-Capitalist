@@ -35,7 +35,7 @@ class _SpinnerPageState extends State<SpinnerPage> {
   }
 
   double get _totalSunkCostValue {
-    return _activeSunkCosts.fold(0.0, (sum, cost) => sum + cost.amount);
+    return _activeSunkCosts.fold(0.0, (sum, cost) => sum + cost.totalAmount);
   }
 
   void _onSpinResult(SunkCost result) {
@@ -464,7 +464,7 @@ class _SpinnerPageState extends State<SpinnerPage> {
                   ),
                 ),
                 Text(
-                  'Investment: \$${_lastResult!.amount.toStringAsFixed(2)}',
+                  'Investment: \$${_lastResult!.totalAmount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.9),
@@ -586,7 +586,7 @@ class _SpinnerPageState extends State<SpinnerPage> {
                                     ),
                                   ),
                                   Text(
-                                    '\$${item.amount.toStringAsFixed(2)}',
+                                    '\$${item.totalAmount.toStringAsFixed(2)}',
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 12,

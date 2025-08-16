@@ -141,6 +141,7 @@ class _AddSunkCostEntryDialogState extends State<AddSunkCostEntryDialog> {
       category: category.isNotEmpty ? category : null,
     );
 
+    print('📝 DEBUG: Creating entry with amount: $finalAmount (original: $amount, isAddition: $_isAddition)');
     Navigator.of(context).pop(entry);
   }
 
